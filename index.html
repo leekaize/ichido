@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ichido</title>
+
+    <!-- Icon Library (Phosphor Icons) -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+    <!-- Stylesheet -->
+    <link rel="stylesheet" href="css/style.css">
+
+    <!-- Main Application Logic -->
+    <script src="js/app.js" defer></script>
+</head>
+<body>
+    <header id="pageHeader">
+        <h1 id="appName">Ichido</h1>
+        <div class="top-right-controls">
+            <button id="themeButton" class="ui-button"></button>
+            <a id="githubLink" href="https://github.com/leekaize/ichido" target="_blank" title="View on GitHub">
+                <i class="ph-bold ph-github-logo"></i>
+            </a>
+        </div>
+    </header>
+
+    <div id="hint">Click anywhere to begin</div>
+
+    <div id="editor" contenteditable="true" spellcheck="false"></div>
+
+    <div id="archiveOverlay">
+        <div id="archiveContainer"></div>
+    </div>
+
+    <div class="button-container">
+        <button id="newButton" class="ui-button">
+            <i class="ph-bold ph-plus"></i>
+            New
+        </button>
+        <button id="archiveButton" class="ui-button">
+            <i class="ph-bold ph-archive"></i>
+            Archives
+        </button>
+    </div>
+</body>
+</html>

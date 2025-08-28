@@ -20,6 +20,6 @@ The name comes from **`ichido` (一度)**, the Japanese word for "once" or "one 
 *   **Forward-Only Writing:** Completed words cannot be edited or deleted.
 *   **Automatic Saving:** Every word is synced to a persistent draft.
 *   **Simple Archive System:** Access, copy, or delete all your previous drafts.
+*   **One-Click Copy:** Instantly copy your draft to the clipboard.
 *   **Theme Toggler:** Switch between Light, Dark, and Auto (system) modes for comfort.
-*   **Keyboard-Centric Design:** No cursor movement, no "Enter" key, just pure typing.
 *   **Zero Dependencies:** Runs entirely in the browser with no need for a backend or installation.

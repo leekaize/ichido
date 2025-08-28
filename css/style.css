@@ -54,6 +54,14 @@ body {
     pointer-events: all; /* Re-enable pointer events for children */
 }
 
+.app-icon {
+    width: 2em;
+    height: 2em;
+    margin-right: 1.2em;
+    border-radius: .2em;
+    object-fit: contain;
+}
+
 #appName {
     font-size: 1.2em;
     font-weight: 600;

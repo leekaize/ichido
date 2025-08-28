@@ -3,8 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ichido</title>
 
+    <title>Ichido</title>
+    <link rel="icon" href="favicon.ico" type="image/x-icon">
     <!-- Icon Library (Phosphor Icons) -->
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
 
@@ -16,7 +17,10 @@
 </head>
 <body>
     <header id="pageHeader">
-        <h1 id="appName">Ichido</h1>
+        <div>
+            <img src="ichido.png" alt="Ichido App Icon" class="app-icon">
+            <h1 id="appName">Ichido</h1>
+        </div>
         <div class="top-right-controls">
             <button id="themeButton" class="ui-button"></button>
             <a id="githubLink" href="https://github.com/leekaize/ichido" target="_blank" title="View on GitHub">
@@ -34,6 +38,10 @@
     </div>
 
     <div class="button-container">
+        <button id="copyButton" class="ui-button">
+            <i class="ph-bold ph-copy"></i>
+            Copy
+        </button>
         <button id="newButton" class="ui-button">
             <i class="ph-bold ph-plus"></i>
             New

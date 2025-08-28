@@ -9,6 +9,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const app = {
         dom: {
             editor: document.getElementById('editor'),
+            copyButton: document.getElementById('copyButton'),
             newButton: document.getElementById('newButton'),
             archiveButton: document.getElementById('archiveButton'),
             themeButton: document.getElementById('themeButton'),
@@ -164,6 +165,18 @@ document.addEventListener('DOMContentLoaded', () => {
             document.body.addEventListener('click', (e) => {
                 if (e.target.closest('#pageHeader') || e.target.closest('.button-container') || e.target.closest('#archiveOverlay')) return;
                 editorManager.focus();
+            });
+
+            app.dom.copyButton.addEventListener('click', () => {
+                const textToCopy = editorManager.getText();
+                if (textToCopy.length > 0) {
+                    const originalHTML = app.dom.copyButton.innerHTML;
+                    navigator.clipboard.writeText(textToCopy).then(() => {
+                        uiManager.showButtonFeedback(app.dom.copyButton, 'Copied!', originalHTML);
+                    }).catch(err => {
+                        console.error("Failed to copy text: ", err);
+                    });
+                }
             });
 
             app.dom.newButton.addEventListener('click', () => {

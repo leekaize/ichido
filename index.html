@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title>Ichido</title>
+    <title>ichido</title>
     <link rel="icon" href="favicon.ico" type="image/x-icon">
     <!-- Icon Library (Phosphor Icons) -->
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
@@ -18,10 +18,12 @@
 <body>
     <header id="pageHeader">
         <div>
-            <img src="ichido.png" alt="Ichido App Icon" class="app-icon">
-            <h1 id="appName">Ichido</h1>
+            <h1 id="appName">一度 ichido</h1>
         </div>
         <div class="top-right-controls">
+            <button id="helpButton" class="ui-button icon-only" title="Help">
+                <i class="ph-bold ph-question"></i>
+            </button>
             <button id="themeButton" class="ui-button"></button>
             <a id="githubLink" href="https://github.com/leekaize/ichido" target="_blank" title="View on GitHub">
                 <i class="ph-bold ph-github-logo"></i>
@@ -33,8 +35,29 @@
 
     <div id="editor" contenteditable="true" spellcheck="false"></div>
 
-    <div id="archiveOverlay">
-        <div id="archiveContainer"></div>
+    <div id="helpOverlay" class="overlay">
+        <div class="overlay-content">
+            <h2>Welcome to Ichido</h2>
+            <p class="tagline">A minimalist space for a single flow of thought.</p>
+            
+            <h3>How It Works</h3>
+            <ol>
+                <li><strong>Start Typing:</strong> Click anywhere and begin writing. The interface is designed to be invisible.</li>
+                <li><strong>Forward-Only Flow:</strong> Once you press the spacebar, the word you just wrote turns grey. It is now part of the past and cannot be edited. This encourages you to stay in the present moment.</li>
+                <li><strong>Focus on Now:</strong> You can only see the last two lines you've typed, keeping you focused on what's next, not what's already written.</li>
+                <li><strong>Automatic Saving:</strong> Every word is automatically saved. Use the "New" button to archive your current draft and start fresh. Your full text is always safe.</li>
+            </ol>
+            
+            <h3>The Philosophy of Ichido (一度)</h3>
+            <p>The name **Ichido** comes from the Japanese word **一度**, meaning "once" or "one time".</p>
+            <p>It reflects the core idea of the app: to capture a draft in a single, uninterrupted session. Like a calligraphic brushstroke, each draft is a unique, one-time event. This space is designed to help you write without the constant temptation to revise, allowing your purest thoughts to emerge.</p>
+            
+            <p class="close-hint">Click anywhere outside this box to close.</p>
+        </div>
+    </div>
+
+    <div id="archiveOverlay" class="overlay">
+        <div id="archiveContainer" class="overlay-content"></div>
     </div>
 
     <div class="button-container">

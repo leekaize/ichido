@@ -1,4 +1,4 @@
-# Ichido (一度)
+# ichido (一度)
 
 Ichido is a minimalist, distraction-free web app for writing down your thoughts.
 

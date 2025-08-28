@@ -12,8 +12,10 @@ document.addEventListener('DOMContentLoaded', () => {
             copyButton: document.getElementById('copyButton'),
             newButton: document.getElementById('newButton'),
             archiveButton: document.getElementById('archiveButton'),
+            helpButton: document.getElementById('helpButton'),
             themeButton: document.getElementById('themeButton'),
             archiveOverlay: document.getElementById('archiveOverlay'),
+            helpOverlay: document.getElementById('helpOverlay'),
             archiveContainer: document.getElementById('archiveContainer'),
             hint: document.getElementById('hint'),
         },
@@ -52,6 +54,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- MODULE: UI Management ---
 
     const uiManager = {
+        // ... (This module is largely unchanged, just the date formatter)
         renderArchives: () => {
             app.dom.archiveContainer.innerHTML = '';
             const archives = stateManager.getArchives();
@@ -61,7 +64,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 archives.forEach(draft => {
                     const item = document.createElement('div');
                     item.className = 'archive-item';
-                    
                     const formatDate = (dateString) => {
                         const d = new Date(dateString);
                         const pad = (num) => String(num).padStart(2, '0');
@@ -69,8 +71,6 @@ document.addEventListener('DOMContentLoaded', () => {
                         const timePart = `${pad(d.getHours())}:${pad(d.getMinutes())}`;
                         return `${datePart} ${timePart}`;
                     };
-
-                    // Create the readable, indented HTML string
                     const htmlString = `
                         <div class="archive-item-content">
                             <strong>${formatDate(draft.date)}</strong>
@@ -79,17 +79,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         <div class="archive-actions">
                             <button class="archive-btn copy-btn" data-id="${draft.id}">${app.icons.copy} Copy</button>
                             <button class="archive-btn delete-btn" data-id="${draft.id}">${app.icons.delete} Delete</button>
-                        </div>
-                    `;
-
-                    /**
-                     * --- THE DEFINITIVE FIX ---
-                     * This regex removes all newlines and spaces between HTML tags
-                     * that were introduced by the template literal's indentation.
-                     * It keeps the code readable while ensuring the output is clean.
-                     */
+                        </div>`;
                     item.innerHTML = htmlString.replace(/>\s+</g, '><').trim();
-                    
                     app.dom.archiveContainer.appendChild(item);
                 });
             }
@@ -165,6 +156,16 @@ document.addEventListener('DOMContentLoaded', () => {
             document.body.addEventListener('click', (e) => {
                 if (e.target.closest('#pageHeader') || e.target.closest('.button-container') || e.target.closest('#archiveOverlay')) return;
                 editorManager.focus();
+            });
+
+            app.dom.helpButton.addEventListener('click', () => {
+                app.dom.helpOverlay.style.display = 'flex';
+            });
+            app.dom.helpOverlay.addEventListener('click', (e) => {
+                // Close if the click is on the background overlay itself
+                if (e.target === app.dom.helpOverlay) {
+                    app.dom.helpOverlay.style.display = 'none';
+                }
             });
 
             app.dom.copyButton.addEventListener('click', () => {

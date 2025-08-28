@@ -4,7 +4,7 @@ Ichido is a minimalist, distraction-free web app for writing down your thoughts.
 
 The name comes from **`ichido` (一度)**, the Japanese word for "once" or "one time". This reflects the core philosophy of the app: to encourage a continuous, forward-only flow of thought, capturing a draft in a single, uninterrupted session.
 
-![Ichido Screenshot](https://ichido.leekaize.com/ichido.png)
+![Ichido Screenshot](./ichido.png)
 
 ---
 

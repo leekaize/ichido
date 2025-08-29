@@ -28,6 +28,7 @@ document.addEventListener('DOMContentLoaded', () => {
         state: {
             currentDraftId: null,
             pendingDeletionId: null,
+            lastText: "", // Tracks text state for reliable mobile input detection
         },
         icons: {
             light: '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="#000000" viewBox="0 0 256 256"><path d="M120,40V16a8,8,0,0,1,16,0V40a8,8,0,0,1-16,0Zm72,88a64,64,0,1,1-64-64A64.07,64.07,0,0,1,192,128Zm-16,0a48,48,0,1,0-48,48A48.05,48.05,0,0,0,176,128ZM58.34,69.66A8,8,0,0,0,69.66,58.34l-16-16A8,8,0,0,0,42.34,53.66Zm0,116.68-16,16a8,8,0,0,0,11.32,11.32l16-16a8,8,0,0,0-11.32-11.32ZM192,72a8,8,0,0,0,5.66-2.34l16-16a8,8,0,0,0-11.32-11.32l-16,16A8,8,0,0,0,192,72Zm5.66,114.34a8,8,0,0,0-11.32,11.32l16,16a8,8,0,0,0,11.32-11.32ZM48,128a8,8,0,0,0-8-8H16a8,8,0,0,0,0,16H40A8,8,0,0,0,48,128Zm80,80a8,8,0,0,0-8,8v24a8,8,0,0,0,16,0V216A8,8,0,0,0,128,208Zm112-88H216a8,8,0,0,0,0,16h24a8,8,0,0,0,0-16Z"></path></svg>',
@@ -54,7 +55,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- MODULE: UI Management ---
 
     const uiManager = {
-        // ... (This module is largely unchanged, just the date formatter)
         renderArchives: () => {
             app.dom.archiveContainer.innerHTML = '';
             const archives = stateManager.getArchives();
@@ -114,26 +114,19 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- MODULE: Editor & Draft Actions ---
 
     const editorManager = {
-        getText: () => app.dom.editor.innerText.trim(),
+        getText: () => app.dom.editor.innerText.replace(app.config.ZERO_WIDTH_SPACE, ''),
         focus: () => {
-            const currentSpan = app.dom.editor.querySelector('.current');
-            if (!currentSpan) return;
-            const selection = window.getSelection();
             const range = document.createRange();
-            range.selectNodeContents(currentSpan);
+            const selection = window.getSelection();
+            range.selectNodeContents(app.dom.editor);
             range.collapse(false);
             selection.removeAllRanges();
             selection.addRange(range);
         },
         clear: () => {
             app.dom.editor.innerHTML = '';
-            const span = document.createElement('span');
-            span.className = 'current';
-            span.textContent = app.config.ZERO_WIDTH_SPACE;
-            app.dom.editor.appendChild(span);
             app.state.currentDraftId = null;
-            editorManager.focus();
-            uiManager.toggleHint();
+            editorManager.handleInput();
         },
         autoSaveCurrentDraft: () => {
             const text = editorManager.getText();
@@ -142,40 +135,89 @@ document.addEventListener('DOMContentLoaded', () => {
             const now = new Date();
             const draft = { id: app.state.currentDraftId || now.getTime(), date: now.toISOString(), content: text };
             const existingIndex = archives.findIndex(a => a.id === draft.id);
-            if (existingIndex > -1) { archives[existingIndex] = draft; } 
+            if (existingIndex > -1) { archives[existingIndex] = draft; }
             else { archives.unshift(draft); }
             stateManager.saveArchives(archives);
             app.state.currentDraftId = draft.id;
         },
+        handleInput: () => {
+            const currentText = app.dom.editor.innerText;
+
+            if (
+                currentText.length > app.state.lastText.length &&
+                !/\s$/.test(app.state.lastText) &&
+                /\s$/.test(currentText)
+            ) {
+                editorManager.autoSaveCurrentDraft();
+            }
+
+            app.state.lastText = currentText;
+
+            const words = currentText.split(/(\s+)/);
+            let newHTML = '';
+            const filteredWords = words.filter(w => w.length > 0);
+
+            for (let i = 0; i < filteredWords.length; i++) {
+                const word = filteredWords[i];
+                const isLastWord = i === filteredWords.length - 1;
+                const isWhitespace = /^\s+$/.test(word);
+
+                if (isLastWord && !isWhitespace) {
+                    newHTML += `<span class="current">${word}</span>`;
+                } else if (!isWhitespace) {
+                    newHTML += `<span class="previous">${word}</span>`;
+                } else {
+                    newHTML += word;
+                }
+            }
+
+            if (currentText.length === 0 || /\s$/.test(currentText[currentText.length - 1])) {
+                newHTML += `<span class="current">${app.config.ZERO_WIDTH_SPACE}</span>`;
+            }
+
+            if (app.dom.editor.innerHTML !== newHTML) {
+                app.dom.editor.innerHTML = newHTML;
+            }
+
+            editorManager.focus();
+            uiManager.toggleHint();
+        }
     };
 
     // --- MODULE: Event Binding ---
 
     const eventBinder = {
         init: () => {
-            document.body.addEventListener('click', (e) => {
-                if (e.target.closest('#pageHeader') || e.target.closest('.button-container') || e.target.closest('#archiveOverlay')) return;
-                editorManager.focus();
+            document.body.addEventListener('click', e => {
+                if (!e.target.closest('#pageHeader') && !e.target.closest('.button-container') && !e.target.closest('.overlay')) {
+                    editorManager.focus();
+                }
             });
 
-            app.dom.helpButton.addEventListener('click', () => {
-                app.dom.helpOverlay.style.display = 'flex';
-            });
-            app.dom.helpOverlay.addEventListener('click', (e) => {
-                // Close if the click is on the background overlay itself
-                if (e.target === app.dom.helpOverlay) {
-                    app.dom.helpOverlay.style.display = 'none';
+            app.dom.editor.addEventListener('input', editorManager.handleInput);
+
+            app.dom.editor.addEventListener('keydown', e => {
+                if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End', 'Enter'].includes(e.key)) {
+                    e.preventDefault();
+                }
+
+                const selection = window.getSelection();
+                if (e.key === 'Backspace' && selection.anchorOffset === 0) {
+                    const node = selection.anchorNode;
+                    if (node && node.nodeType === Node.TEXT_NODE && node.parentNode.classList.contains('current')) {
+                        const previousSibling = node.parentNode.previousSibling;
+                        if (previousSibling && previousSibling.nodeType === Node.TEXT_NODE && /\s/.test(previousSibling.textContent)) {
+                            e.preventDefault();
+                        }
+                    }
                 }
             });
 
             app.dom.copyButton.addEventListener('click', () => {
                 const textToCopy = editorManager.getText();
                 if (textToCopy.length > 0) {
-                    const originalHTML = app.dom.copyButton.innerHTML;
                     navigator.clipboard.writeText(textToCopy).then(() => {
-                        uiManager.showButtonFeedback(app.dom.copyButton, 'Copied!', originalHTML);
-                    }).catch(err => {
-                        console.error("Failed to copy text: ", err);
+                        uiManager.showButtonFeedback(app.dom.copyButton, 'Copied!', `${app.icons.copy} Copy`);
                     });
                 }
             });
@@ -196,18 +238,31 @@ document.addEventListener('DOMContentLoaded', () => {
                 uiManager.applyTheme(nextTheme);
             });
 
-            app.dom.archiveOverlay.addEventListener('click', (e) => {
+            app.dom.helpButton.addEventListener('click', () => {
+                app.dom.helpOverlay.style.display = 'flex';
+            });
+
+            app.dom.helpOverlay.addEventListener('click', e => {
+                if (e.target === app.dom.helpOverlay) {
+                    app.dom.helpOverlay.style.display = 'none';
+                }
+            });
+
+            app.dom.archiveOverlay.addEventListener('click', e => {
                 const target = e.target.closest('.archive-btn') || e.target;
                 if (!target.classList.contains('delete-btn') || Number(target.dataset.id) !== app.state.pendingDeletionId) {
                     uiManager.revertDeleteButton();
                 }
-                if (target === app.dom.archiveOverlay) app.dom.archiveOverlay.style.display = 'none';
+                if (target === app.dom.archiveOverlay) {
+                    app.dom.archiveOverlay.style.display = 'none';
+                }
                 if (target.classList.contains('copy-btn')) {
                     const id = Number(target.dataset.id);
                     const draft = stateManager.getArchives().find(a => a.id === id);
                     if (draft) {
-                        navigator.clipboard.writeText(draft.content);
-                        uiManager.showButtonFeedback(target, 'Copied!', `${app.icons.copy} Copy`);
+                        navigator.clipboard.writeText(draft.content).then(() => {
+                            uiManager.showButtonFeedback(target, 'Copied!', `${app.icons.copy} Copy`);
+                        });
                     }
                 }
                 if (target.classList.contains('delete-btn')) {
@@ -224,34 +279,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
 
-            app.dom.editor.addEventListener('keydown', (e) => {
-                const currentSpan = app.dom.editor.querySelector('.current');
-                if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End', 'Enter'].includes(e.key)) e.preventDefault();
-                if (e.key === ' ' && currentSpan && currentSpan.textContent.length > 1) {
-                    e.preventDefault();
-                    currentSpan.textContent = currentSpan.textContent.replace(app.config.ZERO_WIDTH_SPACE, '');
-                    currentSpan.classList.replace('current', 'previous');
-                    app.dom.editor.appendChild(document.createTextNode(' '));
-                    const newSpan = document.createElement('span');
-                    newSpan.className = 'current'; newSpan.textContent = app.config.ZERO_WIDTH_SPACE;
-                    app.dom.editor.appendChild(newSpan);
-                    editorManager.focus();
-                    editorManager.autoSaveCurrentDraft();
-                }
-                if (e.key === 'Backspace' && currentSpan?.textContent.length <= 1) e.preventDefault();
-                setTimeout(() => { app.dom.editor.scrollTop = app.dom.editor.scrollHeight; }, 0);
-            });
-
-            app.dom.editor.addEventListener('input', uiManager.toggleHint);
             app.dom.editor.addEventListener('paste', e => e.preventDefault());
+
             window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
-                if (stateManager.getTheme() === 'auto') uiManager.applyTheme('auto');
+                if (stateManager.getTheme() === 'auto') {
+                    uiManager.applyTheme('auto');
+                }
             });
         },
     };
 
     // --- INITIALIZE THE APPLICATION ---
-    editorManager.clear();
     eventBinder.init();
+    editorManager.clear();
     uiManager.applyTheme(stateManager.getTheme());
 });

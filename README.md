@@ -1,12 +1,10 @@
 # ichido (一度)
 
-Ichido is a minimalist, distraction-free web app for writing down your thoughts.
+ichido is a minimalist, distraction-free web app for writing down your thoughts.
 
 The name comes from **`ichido` (一度)**, the Japanese word for "once" or "one time". This reflects the core philosophy of the app: to encourage a continuous, forward-only flow of thought, capturing a draft in a single, uninterrupted session.
 
-![Ichido Screenshot](./ichido.png)
-
----
+![ichido Screenshot](./ichido.png)
 
 ## Core Philosophy
 
@@ -23,3 +21,7 @@ The name comes from **`ichido` (一度)**, the Japanese word for "once" or "one 
 *   **One-Click Copy:** Instantly copy your draft to the clipboard.
 *   **Theme Toggler:** Switch between Light, Dark, and Auto (system) modes for comfort.
 *   **Zero Dependencies:** Runs entirely in the browser with no need for a backend or installation.
+
+## Donate
+
+[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/P5P01KE5GQ)

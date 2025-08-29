@@ -1,3 +1,5 @@
+<img src="./favicon.ico" alt="ichido icon" width="50" height="50">
+
 # ichido (一度)
 
 ichido is a minimalist, distraction-free web app for writing down your thoughts.

@@ -171,8 +171,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
 
-            if (currentText.length === 0 || /\s$/.test(currentText[currentText.length - 1])) {
+            // Only add the zero-width space when the editor is completely empty to ensure
+            // it can be focused.
+            if (currentText.length === 0) {
                 newHTML += `<span class="current">${app.config.ZERO_WIDTH_SPACE}</span>`;
+            } else if (/\s$/.test(currentText)) {
+                // If the text ends with a space, add the cursor span without the ZWS.
+                // The browser will render the cursor after the visible space.
+                newHTML += `<span class="current"></span>`;
             }
 
             if (app.dom.editor.innerHTML !== newHTML) {

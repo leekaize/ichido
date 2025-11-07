@@ -1,0 +1,490 @@
+/* ============================================================================
+   CSS VARIABLES (Theme System)
+   ============================================================================ */
+
+:root {
+    --background-color: #f8f9fa;
+    --text-current: #111111;
+    --text-previous: #cccccc;
+    --ui-button-bg: #e9ecef;
+    --ui-button-text: #495057;
+    --ui-button-hover-bg: #dee2e6;
+    --hint-text-color: #adb5bd;
+    --archive-bg: white;
+    --archive-text: #333;
+    --archive-border: #eee;
+    --danger-color: #e03131;
+    --prompt-bg: rgba(255, 255, 255, 0.95);
+    --prompt-text: #495057;
+    --prompt-border: #e9ecef;
+}
+
+body.dark-theme {
+    --background-color: #121212;
+    --text-current: #e0e0e0;
+    --text-previous: #444444;
+    --ui-button-bg: #2b2b2b;
+    --ui-button-text: #d0d0d0;
+    --ui-button-hover-bg: #3c3c3c;
+    --hint-text-color: #666666;
+    --archive-bg: #1e1e1e;
+    --archive-text: #d0d0d0;
+    --archive-border: #333;
+    --danger-color: #ff6b6b;
+    --prompt-bg: rgba(30, 30, 30, 0.95);
+    --prompt-text: #d0d0d0;
+    --prompt-border: #3c3c3c;
+}
+
+/* ============================================================================
+   BASE STYLES
+   ============================================================================ */
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    margin: 0;
+    background-color: var(--background-color);
+    color: var(--text-current);
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* ============================================================================
+   HEADER
+   ============================================================================ */
+
+#pageHeader {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    padding: 20px 30px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    pointer-events: none;
+    z-index: 50;
+}
+
+#pageHeader > * {
+    pointer-events: all;
+}
+
+#appName {
+    margin: 0;
+    line-height: 1.1;
+}
+
+#appName .appName-jp {
+    display: block;
+    font-size: 0.7em;
+    font-weight: 400;
+    color: var(--text-previous);
+}
+
+#appName .appName-en {
+    display: block;
+    font-size: 0.7em;
+    font-weight: 600;
+    color: var(--text-current);
+}
+
+.top-right-controls {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+#githubLink svg {
+    width: 28px;
+    height: 28px;
+    fill: var(--hint-text-color);
+    opacity: 0.7;
+    transition: opacity 0.2s ease, fill 0.2s ease;
+}
+
+#githubLink:hover svg {
+    opacity: 1;
+    fill: var(--text-current);
+}
+
+/* ============================================================================
+   EDITOR
+   ============================================================================ */
+
+#editor {
+    width: 80%;
+    max-width: 800px;
+    height: 3.2em;
+    line-height: 1.6em;
+    overflow: hidden;
+    font-size: 1.25em;
+    outline: none;
+    cursor: text;
+    word-wrap: break-word;
+}
+
+.current {
+    color: var(--text-current);
+}
+
+.previous {
+    color: var(--text-previous);
+}
+
+#hint {
+    position: fixed;
+    top: 45%;
+    color: var(--hint-text-color);
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+    z-index: -1;
+}
+
+/* ============================================================================
+   PROMPT BAR (Guided Mode)
+   ============================================================================ */
+
+.prompt-bar {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    margin-top: -80px;
+    background: var(--prompt-bg);
+    border: 1px solid var(--prompt-border);
+    border-radius: 12px;
+    padding: 12px 20px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    z-index: 40;
+    max-width: 90%;
+}
+
+.prompt-bar.visible {
+    opacity: 1;
+    visibility: visible;
+}
+
+.prompt-text {
+    color: var(--prompt-text);
+    font-size: 0.95em;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.prompt-text svg {
+    flex-shrink: 0;
+}
+
+.prompt-dismiss {
+    background: transparent;
+    border: none;
+    color: var(--hint-text-color);
+    font-size: 1.5em;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0 4px;
+    transition: color 0.2s ease;
+}
+
+.prompt-dismiss:hover {
+    color: var(--text-current);
+}
+
+/* ============================================================================
+   BUTTONS
+   ============================================================================ */
+
+.button-container {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    display: flex;
+    gap: 10px;
+    z-index: 50;
+}
+
+.ui-button {
+    font-size: 0.9em;
+    padding: 8px 16px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    background-color: var(--ui-button-bg);
+    color: var(--ui-button-text);
+    border: none;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: background-color 0.2s ease, transform 0.1s ease;
+    white-space: nowrap;
+}
+
+.ui-button svg {
+    width: 20px;
+    height: 20px;
+    fill: var(--ui-button-text);
+    flex-shrink: 0;
+}
+
+.ui-button.icon-only {
+    padding: 8px;
+}
+
+.ui-button:hover {
+    background-color: var(--ui-button-hover-bg);
+}
+
+.ui-button:active {
+    transform: scale(0.96);
+}
+
+.ui-button.active {
+    background-color: var(--text-current);
+    color: var(--background-color);
+}
+
+.ui-button.active svg {
+    fill: var(--background-color);
+}
+
+.primary-button {
+    background-color: var(--text-current);
+    color: var(--background-color);
+    padding: 10px 24px;
+    margin-top: 20px;
+}
+
+.primary-button:hover {
+    opacity: 0.9;
+}
+
+/* ============================================================================
+   OVERLAYS
+   ============================================================================ */
+
+.overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.6);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 100;
+    backdrop-filter: blur(4px);
+}
+
+.overlay-content {
+    width: 80%;
+    max-width: 700px;
+    max-height: 80%;
+    background-color: var(--archive-bg);
+    border-radius: 8px;
+    padding: 30px 40px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+    overflow-y: auto;
+    color: var(--archive-text);
+}
+
+.intro-content {
+    max-width: 600px;
+}
+
+.intro-content h2 {
+    margin-top: 0;
+}
+
+.intro-content h3 {
+    margin-top: 1.5em;
+    border-bottom: 1px solid var(--archive-border);
+    padding-bottom: 0.5em;
+}
+
+.intro-content ol,
+.intro-content ul {
+    padding-left: 20px;
+}
+
+.intro-content li {
+    margin-bottom: 0.5em;
+    line-height: 1.6;
+}
+
+.overlay-content h2 {
+    margin-top: 0;
+}
+
+.overlay-content h3 {
+    margin-top: 2em;
+    border-bottom: 1px solid var(--archive-border);
+    padding-bottom: 0.5em;
+}
+
+.overlay-content p,
+.overlay-content li {
+    line-height: 1.6;
+}
+
+.overlay-content .tagline {
+    font-style: italic;
+    color: var(--hint-text-color);
+}
+
+.overlay-content .close-hint {
+    text-align: center;
+    margin-top: 2em;
+    font-size: 0.9em;
+    color: var(--hint-text-color);
+}
+
+/* ============================================================================
+   ARCHIVES
+   ============================================================================ */
+
+#archiveContainer {
+    padding: 20px;
+}
+
+.archive-content {
+    max-width: 800px;
+}
+
+.empty-state {
+    text-align: center;
+    color: var(--hint-text-color);
+    font-style: italic;
+}
+
+.archive-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    border-bottom: 1px solid var(--archive-border);
+    padding: 15px 5px;
+    font-size: 0.9em;
+}
+
+.archive-item:last-child {
+    border-bottom: none;
+}
+
+.archive-item-content {
+    white-space: pre-wrap;
+    margin-right: 15px;
+    word-break: break-word;
+    flex: 1;
+}
+
+.archive-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.archive-btn {
+    background: var(--ui-button-bg);
+    color: var(--ui-button-text);
+    border: none;
+    border-radius: 5px;
+    padding: 5px 10px;
+    cursor: pointer;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.85em;
+    transition: background-color 0.2s ease;
+}
+
+.archive-btn svg {
+    width: 16px;
+    height: 16px;
+    fill: var(--ui-button-text);
+}
+
+.archive-btn:hover {
+    background: var(--ui-button-hover-bg);
+}
+
+.archive-btn.confirm-delete {
+    background-color: var(--danger-color);
+    color: white;
+}
+
+.archive-btn.confirm-delete svg {
+    fill: white;
+}
+
+/* ============================================================================
+   RESPONSIVE
+   ============================================================================ */
+
+@media (max-width: 768px) {
+    #pageHeader {
+        padding: 15px 20px;
+    }
+
+    #appName {
+        font-size: 0.9em;
+    }
+
+    #editor {
+        width: 90%;
+        font-size: 1.1em;
+    }
+
+    .button-container {
+        bottom: 20px;
+        right: 20px;
+        gap: 8px;
+    }
+
+    .ui-button {
+        font-size: 0.85em;
+        padding: 7px 14px;
+    }
+
+    .overlay-content {
+        width: 90%;
+        padding: 25px 30px;
+        max-height: 85%;
+    }
+
+    .archive-item {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .archive-actions {
+        align-self: flex-end;
+    }
+
+    .prompt-bar {
+        max-width: 85%;
+        padding: 10px 16px;
+        margin-top: -60px;
+    }
+
+    .prompt-text {
+        font-size: 0.9em;
+    }
+}

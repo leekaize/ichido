@@ -1,127 +1,225 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="A minimalist space for honest reflection. Write what matters. Once. Without revision.">
-    <meta name="keywords" content="journaling, reflection, prayer, mindfulness, writing, minimalist">
-    
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="A minimalist space for honest reflection. Write what matters. Once. Without revision."
+    />
+    <meta
+      name="keywords"
+      content="journaling, reflection, prayer, mindfulness, writing, minimalist"
+    />
+
     <title>ichido - A space for honest reflection</title>
-    <link rel="icon" href="/favicon.ico" type="image/x-icon">
-    
-    <link rel="stylesheet" href="/src/styles/main.css">
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+
+    <link rel="stylesheet" href="/src/styles/main.css" />
     <script type="module" src="/src/main.ts"></script>
-</head>
-<body>
+  </head>
+  <body>
     <header id="pageHeader">
-        <h1 id="appName">
-            <span class="appName-jp">(一度)</span>
-            <span class="appName-en">ichido</span>
-        </h1>
-        <div class="top-right-controls">
-            <button id="helpButton" class="ui-button icon-only" title="Help" aria-label="Help">
-                <!-- Help icon SVG -->
-            </button>
-            <button id="themeButton" class="ui-button" aria-label="Toggle theme"></button>
-            <a id="githubLink" href="https://github.com/leekaize/ichido" target="_blank" rel="noopener noreferrer" title="View on GitHub" aria-label="GitHub repository">
-                <!-- GitHub icon SVG -->
-            </a>
-        </div>
+      <h1 id="appName">
+        <span class="appName-jp">(一度)</span>
+        <span class="appName-en">ichido</span>
+      </h1>
+      <div class="top-right-controls">
+        <button
+          id="helpButton"
+          class="ui-button icon-only"
+          title="Help"
+          aria-label="Help"
+        >
+          <!-- Help icon SVG -->
+        </button>
+        <button
+          id="themeButton"
+          class="ui-button"
+          aria-label="Toggle theme"
+        ></button>
+        <a
+          id="githubLink"
+          href="https://github.com/leekaize/ichido"
+          target="_blank"
+          rel="noopener noreferrer"
+          title="View on GitHub"
+          aria-label="GitHub repository"
+        >
+          <!-- GitHub icon SVG -->
+        </a>
+      </div>
     </header>
 
     <div id="hint">Click anywhere to begin</div>
 
-    <div id="editor" contenteditable="true" spellcheck="false" role="textbox" aria-label="Writing space"></div>
+    <div
+      id="editor"
+      contenteditable="true"
+      spellcheck="false"
+      role="textbox"
+      aria-label="Writing space"
+    ></div>
 
     <!-- Guided Mode Prompt Bar -->
     <div id="promptBar" class="prompt-bar">
-        <span id="promptText" class="prompt-text"></span>
-        <button id="dismissPrompt" class="prompt-dismiss" aria-label="Dismiss prompt">×</button>
+      <span id="promptText" class="prompt-text"></span>
+      <button
+        id="dismissPrompt"
+        class="prompt-dismiss"
+        aria-label="Dismiss prompt"
+      >
+        ×
+      </button>
     </div>
 
     <!-- Intro Overlay (First-time users) -->
     <div id="introOverlay" class="overlay">
-        <div class="overlay-content intro-content">
-            <h2>Welcome to ichido</h2>
-            <p class="tagline">A space for honest reflection.</p>
-            
-            <h3>How It Works</h3>
-            <ol>
-                <li><strong>Start Writing:</strong> Click anywhere and begin. The interface disappears.</li>
-                <li><strong>Forward-Only Flow:</strong> Once you press spacebar, the word turns gray and becomes part of the past. You cannot edit it. This keeps you in the present moment.</li>
-                <li><strong>Focus on Now:</strong> You can only see the last two lines, keeping you focused on what's next.</li>
-                <li><strong>Automatic Saving:</strong> Every word is saved automatically. Click "New" to start fresh. Your reflections are always safe in Archives.</li>
-            </ol>
-            
-            <h3>What is ichido?</h3>
-            <p><strong>ichido</strong> (一度) means "once" in Japanese. It reflects the core idea: write authentically, without the temptation to revise. Like a single brushstroke, each reflection is a unique moment.</p>
-            
-            <p>This space works for anyone:</p>
-            <ul>
-                <li>Daily intention setting</li>
-                <li>Gratitude practice</li>
-                <li>Prayer or meditation journaling</li>
-                <li>Dialogue with what you hold sacred</li>
-                <li>Freewriting without self-censorship</li>
-            </ul>
-            
-            <p><strong>Your data stays private.</strong> Everything is stored in your browser only. No tracking. No external servers.</p>
-            
-            <button id="closeIntro" class="ui-button primary-button">Start Writing</button>
-        </div>
+      <div class="overlay-content intro-content">
+        <h2>Welcome to ichido</h2>
+        <p class="tagline">A space for honest reflection.</p>
+
+        <h3>How It Works</h3>
+        <ol>
+          <li>
+            <strong>Start Writing:</strong> Click anywhere and begin. The
+            interface disappears.
+          </li>
+          <li>
+            <strong>Forward-Only Flow:</strong> Once you press spacebar, the
+            word turns gray and becomes part of the past. You cannot edit it.
+            This keeps you in the present moment.
+          </li>
+          <li>
+            <strong>Focus on Now:</strong> You can only see the last two lines,
+            keeping you focused on what's next.
+          </li>
+          <li>
+            <strong>Automatic Saving:</strong> Every word is saved
+            automatically. Click "New" to start fresh. Your reflections are
+            always safe in Archives.
+          </li>
+        </ol>
+
+        <h3>What is ichido?</h3>
+        <p>
+          <strong>ichido</strong> (一度) means "once" in Japanese. It reflects
+          the core idea: write authentically, without the temptation to revise.
+          Like a single brushstroke, each reflection is a unique moment.
+        </p>
+
+        <p>This space works for anyone:</p>
+        <ul>
+          <li>Daily intention setting</li>
+          <li>Gratitude practice</li>
+          <li>Prayer or meditation journaling</li>
+          <li>Dialogue with what you hold sacred</li>
+          <li>Freewriting without self-censorship</li>
+        </ul>
+
+        <p>
+          <strong>Your data stays private.</strong> Everything is stored in your
+          browser only. No tracking. No external servers.
+        </p>
+
+        <button id="closeIntro" class="ui-button primary-button">
+          Start Writing
+        </button>
+      </div>
     </div>
 
     <!-- Help Overlay -->
     <div id="helpOverlay" class="overlay">
-        <div class="overlay-content">
-            <h2>About ichido</h2>
-            <p class="tagline">A minimalist space for honest reflection.</p>
-            
-            <h3>Core Philosophy</h3>
-            <p><strong>Presence over perfection.</strong> When you can't edit, you can't perform. The inability to revise creates space for authentic expression.</p>
-            <p><strong>ichido</strong> (一度, "once") enforces forward-only writing. Completed words become immutable. This constraint frees you from constant revision and keeps you present.</p>
-            
-            <h3>Features</h3>
-            <ul>
-                <li><strong>Forward-Only Writing:</strong> Words turn gray after completion and cannot be edited</li>
-                <li><strong>Guided Mode:</strong> Optional neutral prompts for morning/evening reflection</li>
-                <li><strong>Auto-Save:</strong> Every word is automatically preserved</li>
-                <li><strong>Archives:</strong> Review, copy, or delete past reflections</li>
-                <li><strong>Privacy First:</strong> All data stays in your browser's local storage</li>
-                <li><strong>Belief Neutral:</strong> Works for any worldview or spiritual practice</li>
-            </ul>
-            
-            <h3>Use Cases</h3>
-            <p><strong>Morning:</strong> Set intentions, express gratitude, clarify focus</p>
-            <p><strong>Evening:</strong> Reflect on the day, release what no longer serves</p>
-            <p><strong>Anytime:</strong> Write to what you hold sacred—God, universe, future self, loved ones</p>
-            
-            <p class="close-hint">Click anywhere outside this box to close.</p>
-        </div>
+      <div class="overlay-content">
+        <h2>About ichido</h2>
+        <p class="tagline">A minimalist space for honest reflection.</p>
+
+        <h3>Core Philosophy</h3>
+        <p>
+          <strong>Presence over perfection.</strong> When you can't edit, you
+          can't perform. The inability to revise creates space for authentic
+          expression.
+        </p>
+        <p>
+          <strong>ichido</strong> (一度, "once") enforces forward-only writing.
+          Completed words become immutable. This constraint frees you from
+          constant revision and keeps you present.
+        </p>
+
+        <h3>Features</h3>
+        <ul>
+          <li>
+            <strong>Forward-Only Writing:</strong> Words turn gray after
+            completion and cannot be edited
+          </li>
+          <li>
+            <strong>Guided Mode:</strong> Optional neutral prompts for
+            morning/evening reflection
+          </li>
+          <li>
+            <strong>Auto-Save:</strong> Every word is automatically preserved
+          </li>
+          <li>
+            <strong>Archives:</strong> Review, copy, or delete past reflections
+          </li>
+          <li>
+            <strong>Privacy First:</strong> All data stays in your browser's
+            local storage
+          </li>
+          <li>
+            <strong>Belief Neutral:</strong> Works for any worldview or
+            spiritual practice
+          </li>
+        </ul>
+
+        <h3>Use Cases</h3>
+        <p>
+          <strong>Morning:</strong> Set intentions, express gratitude, clarify
+          focus
+        </p>
+        <p>
+          <strong>Evening:</strong> Reflect on the day, release what no longer
+          serves
+        </p>
+        <p>
+          <strong>Anytime:</strong> Write to what you hold sacred—God, universe,
+          future self, loved ones
+        </p>
+
+        <p class="close-hint">Click anywhere outside this box to close.</p>
+      </div>
     </div>
 
     <!-- Archives Overlay -->
     <div id="archiveOverlay" class="overlay">
-        <div id="archiveContainer" class="overlay-content archive-content"></div>
+      <div id="archiveContainer" class="overlay-content archive-content"></div>
     </div>
 
     <!-- Bottom Controls -->
     <div class="button-container">
-        <button id="guidedModeButton" class="ui-button" aria-label="Toggle guided mode">
-            ○ Guided
-        </button>
-        <button id="copyButton" class="ui-button" aria-label="Copy current text">
-            <!-- Copy icon will be injected by JS -->
-            Copy
-        </button>
-        <button id="newButton" class="ui-button" aria-label="Start new reflection">
-            <!-- New icon will be injected by JS -->
-            New
-        </button>
-        <button id="archiveButton" class="ui-button" aria-label="View archives">
-            <!-- Archive icon will be injected by JS -->
-            Archives
-        </button>
+      <button
+        id="guidedModeButton"
+        class="ui-button"
+        aria-label="Toggle guided mode"
+      >
+        ○ Guided
+      </button>
+      <button id="copyButton" class="ui-button" aria-label="Copy current text">
+        <!-- Copy icon will be injected by JS -->
+        Copy
+      </button>
+      <button
+        id="newButton"
+        class="ui-button"
+        aria-label="Start new reflection"
+      >
+        <!-- New icon will be injected by JS -->
+        New
+      </button>
+      <button id="archiveButton" class="ui-button" aria-label="View archives">
+        <!-- Archive icon will be injected by JS -->
+        Archives
+      </button>
     </div>
-</body>
+  </body>
 </html>

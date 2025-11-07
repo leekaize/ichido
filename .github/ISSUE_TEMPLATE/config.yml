@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 💬 Discussion
+    url: https://github.com/leekaize/ichido/discussions
+    about: Questions, ideas, community chat
+  - name: 📖 Documentation
+    url: https://github.com/leekaize/ichido#readme
+    about: Read the docs first

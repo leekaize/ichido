@@ -1,56 +1,101 @@
 # Contributing to ichido
 
-Thank you for considering contributing to ichido. This project believes in **simplicity, accessibility, and respect for diverse practices.**
+Thank you for considering contributing to ichido. This document outlines our standards and process.
 
 ---
 
-## Core Principles for Contributors
+## Core Philosophy
 
-**Every contribution must answer:**
-1. **Does it serve the core purpose?** (Honest, forward-only reflection)
-2. **Does it respect simplicity?** (Less code is better than more features)
-3. **Does it remain belief-neutral?** (Works for atheists, theists, everyone)
-4. **Does it preserve privacy?** (No tracking, no external calls, no data harvesting)
+Before contributing, understand our design principles:
 
-**If the answer to any is "no" or "maybe," the feature shouldn't ship.**
+1. **Simplicity over features** - Every addition costs maintenance
+2. **Privacy is non-negotiable** - No external calls, no tracking
+3. **Zero runtime dependencies** - Vanilla TypeScript only
+4. **Belief-neutral design** - Works for all worldviews
+
+Read [PHILOSOPHY.md](./PHILOSOPHY.md) before proposing features.
 
 ---
 
 ## Ways to Contribute
 
-### 1. Bug Reports
-Found a bug? [Open an issue](https://github.com/leekaize/ichido/issues) with:
-- Clear title (e.g., "Editor loses focus on Safari iOS 17")
-- Steps to reproduce
-- Expected vs actual behavior
-- Browser/OS version
-- Screenshots if relevant
+### 1. Report Bugs
 
-**Good bug report example:**
+**Before filing:**
+
+- Search existing [issues](https://github.com/leekaize/ichido/issues)
+- Test in incognito/private mode
+- Clear localStorage and retry
+
+**Bug report template:**
+
+```markdown
+## Environment
+
+- Browser: [Chrome 120 / Firefox 119 / Safari 17]
+- OS: [macOS / Windows / iOS / Android]
+- ichido version: [from package.json]
+
+## Steps to Reproduce
+
+1.
+2.
+3.
+
+## Expected Behavior
+
+[What should happen]
+
+## Actual Behavior
+
+[What actually happens]
+
+## Console Errors
+
+[Paste any errors from DevTools Console]
 ```
-**Title:** Text disappears after pasting on Firefox 120
 
-**Steps:**
-1. Type "hello world"
-2. Copy external text
-3. Try to paste with Cmd+V
-4. Text disappears
+### 2. Suggest Features
 
-**Expected:** Paste is blocked (intended behavior)
-**Actual:** Existing text vanishes
-**Browser:** Firefox 120, macOS 14.2
+**Requirements:**
+
+- Serves 80%+ of users
+- Maintains zero dependencies
+- Respects privacy
+- Belief-neutral design
+
+**Feature proposal template:**
+
+```markdown
+## Problem
+
+[What user need does this address?]
+
+## Proposed Solution
+
+[How would it work?]
+
+## Alternatives Considered
+
+[What simpler options exist?]
+
+## Complexity Cost
+
+[What code/maintenance does this add?]
+
+## Belief Neutrality
+
+[Works for all worldviews?]
 ```
 
-### 2. Feature Requests
-[Start a Discussion](https://github.com/leekaize/ichido/discussions) before coding.
+**Discussion checklist:**
 
-**Required context:**
-- **Problem statement:** What user need does this solve?
 - **Belief neutrality check:** Does it work for all worldviews?
 - **Complexity cost:** What does this add to the codebase?
 - **Alternative solutions:** What simpler approaches exist?
 
 **We reject features that:**
+
 - Add external dependencies without extraordinary justification
 - Require backend infrastructure
 - Compromise privacy or simplicity
@@ -59,12 +104,14 @@ Found a bug? [Open an issue](https://github.com/leekaize/ichido/issues) with:
 ### 3. Code Contributions
 
 **Before you code:**
+
 1. Check [open issues](https://github.com/leekaize/ichido/issues)
 2. Comment on the issue you want to work on
 3. Wait for maintainer confirmation
 4. Fork the repo
 
 **Development setup:**
+
 ```bash
 git clone https://github.com/YOUR_USERNAME/ichido.git
 cd ichido
@@ -73,6 +120,7 @@ npm run dev
 ```
 
 **Code standards:**
+
 - TypeScript strict mode (no `any` types)
 - Preserve zero runtime dependencies
 - Max function length: 30 lines
@@ -81,6 +129,9 @@ npm run dev
 - Add JSDoc comments for public functions
 
 **Testing checklist:**
+
+- [ ] Unit tests pass: `npm test`
+- [ ] Type check passes: `npm run type-check`
 - [ ] Works in Chrome, Firefox, Safari
 - [ ] Works on mobile (iOS Safari, Android Chrome)
 - [ ] Keyboard navigation functional
@@ -90,21 +141,27 @@ npm run dev
 - [ ] All existing features still work
 
 **Pull Request template:**
+
 ```markdown
 ## Problem
+
 [Describe the issue this PR solves]
 
 ## Solution
+
 [Explain your approach]
 
 ## Testing
+
+- [ ] Unit tests added/updated
 - [ ] Tested on Chrome/Firefox/Safari
 - [ ] Tested on mobile
 - [ ] No new dependencies added
 - [ ] TypeScript builds without errors
-- [ ] Existing tests pass
+- [ ] All tests pass
 
 ## Screenshots
+
 [If UI changes, add before/after screenshots]
 ```
 
@@ -113,15 +170,19 @@ npm run dev
 ## Development Guidelines
 
 ### File Structure
+
 ```
 src/
 ├── main.ts              # Entry point, initialization
-├── app.ts               # App state and orchestration
+├── app.ts               # Application orchestration
+├── types.ts             # TypeScript interfaces
+├── config.ts            # Configuration constants
+├── icons.ts             # SVG definitions
 ├── modules/
-│   ├── state.ts         # LocalStorage operations
+│   ├── state.ts         # localStorage operations
 │   ├── editor.ts        # Editor logic and rendering
 │   ├── ui.ts            # UI components and themes
-│   └── prompts.ts       # Guided mode prompt system
+│   └── prompts.ts       # Guided mode system
 └── styles/
     └── main.css         # All styling (no CSS-in-JS)
 ```
@@ -129,6 +190,7 @@ src/
 ### TypeScript Patterns
 
 **Good:**
+
 ```typescript
 interface Draft {
   id: number;
@@ -142,25 +204,91 @@ function saveDraft(draft: Draft): void {
 ```
 
 **Bad:**
+
 ```typescript
 function saveDraft(d: any) {
   localStorage.setItem('draft', JSON.stringify(d));
 }
 ```
 
+### Testing Guidelines
+
+**Unit Tests (Vitest)**
+
+- Test modules in isolation
+- Mock DOM when necessary
+- Test edge cases and error handling
+- Keep tests under 50 lines
+
+```typescript
+// tests/unit/state.test.ts
+import { describe, it, expect, beforeEach } from 'vitest';
+import { StateManager } from '../../src/modules/state';
+
+describe('StateManager', () => {
+  let stateManager: StateManager;
+
+  beforeEach(() => {
+    localStorage.clear();
+    stateManager = new StateManager();
+  });
+
+  it('returns empty array when no archives exist', () => {
+    expect(stateManager.getArchives()).toEqual([]);
+  });
+});
+```
+
+**E2E Tests (Playwright)**
+
+- Test complete user flows
+- Verify cross-browser compatibility
+- Check localStorage persistence
+- Test mobile interactions
+
+```typescript
+// tests/e2e/writing-flow.spec.ts
+import { test, expect } from '@playwright/test';
+
+test('writes and saves reflection', async ({ page }) => {
+  await page.goto('/');
+  await page.locator('#editor').click();
+  await page.keyboard.type('test reflection ');
+
+  const archives = await page.evaluate(() => {
+    return localStorage.getItem('ichido_archives');
+  });
+
+  expect(archives).toContain('test reflection');
+});
+```
+
+**Running Tests:**
+
+```bash
+npm test                 # Unit tests
+npm run test:coverage    # With coverage report
+npm run test:e2e         # E2E tests (requires build)
+npm run test:e2e:ui      # Interactive E2E mode
+```
+
 ### Performance Rules
+
 - **No unnecessary re-renders** - Only update DOM when content changes
 - **Debounce localStorage writes** - Don't save on every keystroke
 - **Lazy load archives** - Only render when overlay opens
 - **Efficient selectors** - Use IDs, not complex queries
 
 ### Commit Messages
+
 Follow [Conventional Commits](https://www.conventionalcommits.org/):
+
 ```
 feat: add evening reflection prompts
 fix: resolve Safari paste prevention bug
 docs: update PHILOSOPHY.md with new examples
 refactor: simplify editor focus logic
+test: add unit tests for StateManager
 ```
 
 ---
@@ -168,6 +296,7 @@ refactor: simplify editor focus logic
 ## Priority Contribution Areas
 
 ### High Priority
+
 - **Accessibility improvements**
   - Screen reader support
   - Better keyboard navigation
@@ -183,6 +312,7 @@ refactor: simplify editor focus logic
   - iOS Safari quirks
 
 ### Medium Priority
+
 - **Export formats**
   - Markdown export
   - Plain text export
@@ -191,8 +321,12 @@ refactor: simplify editor focus logic
   - Custom prompt templates
   - Local encryption
   - Archive search
+- **Testing infrastructure**
+  - Fix E2E test issues ([#1](https://github.com/leekaize/ichido/issues/1))
+  - Add more edge case coverage
 
 ### Low Priority (Research Phase)
+
 - End-to-end encrypted sync (must remain optional)
 - PWA offline manifest improvements
 - Custom theme editor
@@ -202,6 +336,7 @@ refactor: simplify editor focus logic
 ## What We Won't Accept
 
 **Hard No:**
+
 - Analytics or tracking (even "privacy-friendly")
 - External API calls without explicit user consent
 - Features that require accounts/authentication
@@ -210,6 +345,7 @@ refactor: simplify editor focus logic
 - Religion-specific features (use plugins instead)
 
 **Example rejected features:**
+
 - "Add Facebook login to sync across devices" ❌
 - "Integrate with OpenAI for prayer suggestions" ❌
 - "Add Catholic saint of the day widget" ❌
@@ -220,16 +356,20 @@ refactor: simplify editor focus logic
 ## Code Review Process
 
 1. **Automated checks** (GitHub Actions)
+
    - TypeScript compilation
+   - Unit tests
    - Bundle size analysis
    - No new dependencies alert
 
 2. **Maintainer review** (48-hour target)
+
    - Code quality check
    - Philosophy alignment
    - Complexity cost assessment
 
 3. **Feedback loop**
+
    - Requested changes must address maintainer concerns
    - Discussion happens in PR comments
    - Stale PRs (30 days no activity) auto-close
@@ -259,7 +399,6 @@ refactor: simplify editor focus logic
 - **Usage questions:** [Discussions](https://github.com/leekaize/ichido/discussions)
 - **Bug reports:** [Issues](https://github.com/leekaize/ichido/issues)
 - **Design philosophy:** Read [PHILOSOPHY.md](./PHILOSOPHY.md)
-- **Direct contact:** [maintainer email](mailto:leekaize@example.com)
 
 ---
 

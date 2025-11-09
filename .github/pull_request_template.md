@@ -31,7 +31,7 @@
 
 - [ ] Aligns with ichido philosophy (simplicity, privacy, accessibility)
 - [ ] No console errors
-- [ ] Works offline
+- [ ] Works offline (if applicable)
 - [ ] Mobile responsive (if applicable)
 - [ ] Accessible (keyboard nav, screen reader friendly)
 - [ ] Updated docs if needed

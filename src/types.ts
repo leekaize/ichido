@@ -29,6 +29,14 @@ export interface LifeEvent {
   color: string; // from the palette in state.ts
 }
 
+export interface TodoItem {
+  id: string;
+  text: string;
+  done: boolean;
+  createdAt: number;
+  doneAt?: number;
+}
+
 export interface AppSettings {
   key: 'app';
   birthdate?: string; // YYYY-MM-DD, anchors the life view

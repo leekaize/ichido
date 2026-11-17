@@ -1,5 +1,5 @@
 import { db } from './db';
-import type { AppSettings, LifeEvent, Reason } from './types';
+import type { AppSettings, LifeEvent, Reason, TodoItem } from './types';
 
 export const SEVERITY_MAX = 5;
 const DEFAULT_SEVERITY = 3;
@@ -16,12 +16,14 @@ export const EVENT_COLORS = [
 let reasons: Reason[] = [];
 let settings: AppSettings = { key: 'app' };
 let events: LifeEvent[] = [];
+let todos: TodoItem[] = [];
 
 type Listener = () => void;
 
 const reasonListeners: Listener[] = [];
 const settingsListeners: Listener[] = [];
 const eventsListeners: Listener[] = [];
+const todoListeners: Listener[] = [];
 
 export function onReasonsChange(fn: Listener): void {
   reasonListeners.push(fn);
@@ -33,6 +35,10 @@ export function onSettingsChange(fn: Listener): void {
 
 export function onEventsChange(fn: Listener): void {
   eventsListeners.push(fn);
+}
+
+export function onTodosChange(fn: Listener): void {
+  todoListeners.push(fn);
 }
 
 function emitTo(listeners: Listener[]): void {
@@ -189,9 +195,12 @@ export async function reloadFromDb(): Promise<void> {
   settings = (await db.getSettings()) ?? { key: 'app' };
   events = await db.getEvents();
   events.sort((a, b) => a.date.localeCompare(b.date));
+  todos = await db.getTodos();
+  todos.sort((a, b) => a.createdAt - b.createdAt);
   emitTo(reasonListeners);
   emitTo(settingsListeners);
   emitTo(eventsListeners);
+  emitTo(todoListeners);
 }
 
 export function getEvents(): LifeEvent[] {
@@ -212,6 +221,66 @@ export async function removeEvent(id: string): Promise<void> {
   await db.deleteEvent(id);
   events = events.filter((event) => event.id !== id);
   emitTo(eventsListeners);
+}
+
+export async function initTodos(): Promise<void> {
+  todos = await db.getTodos();
+  todos.sort((a, b) => a.createdAt - b.createdAt);
+}
+
+export function getTodos(): TodoItem[] {
+  return todos;
+}
+
+/** Open items in creation order, then done items. */
+export function sortedTodos(): TodoItem[] {
+  const open = todos.filter((todo) => !todo.done);
+  const done = todos.filter((todo) => todo.done);
+  return [...open, ...done];
+}
+
+export async function addTodo(text: string): Promise<void> {
+  const trimmed = text.trim();
+  if (!trimmed) return;
+  const todo: TodoItem = { id: crypto.randomUUID(), text: trimmed, done: false, createdAt: Date.now() };
+  await db.putTodo(todo);
+  todos = [...todos, todo];
+  emitTo(todoListeners);
+}
+
+export async function toggleTodo(id: string): Promise<void> {
+  const todo = todos.find((t) => t.id === id);
+  if (!todo) return;
+  const next: TodoItem = todo.done
+    ? { ...todo, done: false, doneAt: undefined }
+    : { ...todo, done: true, doneAt: Date.now() };
+  await db.putTodo(next);
+  todos = todos.map((t) => (t.id === id ? next : t));
+  emitTo(todoListeners);
+}
+
+export async function updateTodoText(id: string, text: string): Promise<void> {
+  const trimmed = text.trim();
+  if (!trimmed) return;
+  const todo = todos.find((t) => t.id === id);
+  if (!todo || todo.text === trimmed) return;
+  const next: TodoItem = { ...todo, text: trimmed };
+  await db.putTodo(next);
+  todos = todos.map((t) => (t.id === id ? next : t));
+  emitTo(todoListeners);
+}
+
+export async function removeTodo(id: string): Promise<void> {
+  await db.deleteTodo(id);
+  todos = todos.filter((todo) => todo.id !== id);
+  emitTo(todoListeners);
+}
+
+export async function clearDoneTodos(): Promise<void> {
+  const doneIds = todos.filter((todo) => todo.done).map((todo) => todo.id);
+  for (const id of doneIds) await db.deleteTodo(id);
+  todos = todos.filter((todo) => !todo.done);
+  emitTo(todoListeners);
 }
 
 export async function updateEvent(

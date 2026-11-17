@@ -1,11 +1,12 @@
 import './style.css';
-import { getSettings, initEvents, initReasons, initSettings, onReasonsChange } from './state';
+import { getSettings, initEvents, initReasons, initSettings, initTodos, onReasonsChange } from './state';
 import { initDayView, rerenderDayView } from './dayview';
 import { initLifeView } from './lifeview';
 import { initBirthdayModal, openBirthdayModal } from './birthdaymodal';
 import { closePanel as closeReasonsPanel, initReasonsPanel, toggleReasonsPanel } from './reasonspanel';
 import { closePanel as closeEventsPanel, initEventsPanel, toggleEventsPanel } from './eventspanel';
 import { closePanel as closeSettingsPanel, initSettingsPanel, toggleSettingsPanel } from './settingspanel';
+import { initFocusList } from './focuslist';
 
 async function main(): Promise<void> {
   const app = document.querySelector<HTMLDivElement>('#app');
@@ -14,6 +15,7 @@ async function main(): Promise<void> {
   await initReasons();
   await initSettings();
   await initEvents();
+  await initTodos();
 
   const header = document.createElement('header');
   const title = document.createElement('h1');
@@ -53,6 +55,7 @@ async function main(): Promise<void> {
   app.append(header);
 
   initDayView(app);
+  initFocusList(app);
   initLifeView(app);
   initReasonsPanel(app);
   initEventsPanel(app);

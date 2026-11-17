@@ -238,6 +238,101 @@ h1 {
   margin: 0;
 }
 
+.focus {
+  margin-top: 1rem;
+}
+
+.focus-add {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.focus-label {
+  font-size: 0.75rem;
+  color: var(--muted);
+  flex: none;
+}
+
+.focus-form {
+  flex: 1;
+  min-width: 0;
+}
+
+.focus-form input {
+  width: 100%;
+  font-size: 0.85rem;
+}
+
+.focus-list {
+  margin-top: 0.25rem;
+}
+
+.focus-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.2rem 0;
+  font-size: 0.85rem;
+}
+
+.focus-check {
+  width: 0.85rem;
+  height: 0.85rem;
+  padding: 0;
+  border: 1px solid var(--muted);
+  border-radius: 50%;
+  background: none;
+  flex: none;
+}
+
+.focus-check:hover {
+  border-color: var(--fg);
+}
+
+.focus-item.done .focus-check {
+  background: var(--done);
+  border-color: var(--done);
+}
+
+.focus-text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.focus-item.done .focus-text {
+  color: var(--muted);
+  text-decoration: line-through;
+}
+
+.focus-del {
+  border: none;
+  background: none;
+  color: var(--muted);
+  padding: 0 0.2rem;
+  font-size: 0.8rem;
+}
+
+.focus-del:hover {
+  color: var(--failed);
+}
+
+.focus-clear {
+  border: none;
+  background: none;
+  color: var(--muted);
+  padding: 0.2rem 0;
+  font-size: 0.75rem;
+  text-decoration: underline;
+}
+
+.focus-clear.hidden {
+  display: none;
+}
+
 .tooltip {
   position: fixed;
   z-index: 40;

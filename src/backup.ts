@@ -2,24 +2,26 @@ import { db } from './db';
 import { reloadFromDb } from './state';
 import { reloadDayView } from './dayview';
 import { clear as clearHistory } from './history';
-import type { AppSettings, Cell, CellStatus, DayRecord, LifeEvent, Reason } from './types';
+import type { AppSettings, Cell, CellStatus, DayRecord, LifeEvent, Reason, TodoItem } from './types';
 
-const EXPORT_VERSION = 2;
+const EXPORT_VERSION = 3;
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 export interface ImportSummary {
   days: number;
   reasons: number;
   events: number;
+  todos: number;
   skipped: number;
 }
 
 /** Downloads every store as one JSON file. */
 export async function exportJson(): Promise<void> {
-  const [days, reasons, events, settings] = await Promise.all([
+  const [days, reasons, events, todos, settings] = await Promise.all([
     db.getAllDays(),
     db.getReasons(),
     db.getEvents(),
+    db.getTodos(),
     db.getSettings(),
   ]);
   const payload = {
@@ -29,6 +31,7 @@ export async function exportJson(): Promise<void> {
     days,
     reasons,
     events,
+    todos,
     settings: settings ?? null,
   };
   const url = URL.createObjectURL(
@@ -49,7 +52,7 @@ export async function importJson(file: File): Promise<ImportSummary> {
   } catch {
     throw new Error('not valid JSON');
   }
-  const data = parsed as { days?: unknown; reasons?: unknown; events?: unknown; settings?: unknown } | null;
+  const data = parsed as { days?: unknown; reasons?: unknown; events?: unknown; todos?: unknown; settings?: unknown } | null;
   if (!data || !Array.isArray(data.days) || !Array.isArray(data.reasons) || !Array.isArray(data.events)) {
     throw new Error('not an ichido export');
   }
@@ -57,15 +60,17 @@ export async function importJson(file: File): Promise<ImportSummary> {
   const days = sanitizeDays(data.days);
   const reasons = sanitizeReasons(data.reasons);
   const events = sanitizeEvents(data.events);
+  // exports from before the focus list existed carry no todos
+  const todos = Array.isArray(data.todos) ? sanitizeTodos(data.todos) : [];
   const settings = sanitizeSettings(data.settings);
   const skipped =
-    data.days.length - days.length + (data.reasons.length - reasons.length) + (data.events.length - events.length);
+    data.days.length - days.length + (data.reasons.length - reasons.length) + (data.events.length - events.length) + (Array.isArray(data.todos) ? data.todos.length - todos.length : 0);
 
-  await db.replaceAllStores({ days, reasons, events, settings });
+  await db.replaceAllStores({ days, reasons, events, todos, settings });
   clearHistory();
   await reloadFromDb();
   reloadDayView();
-  return { days: days.length, reasons: reasons.length, events: events.length, skipped };
+  return { days: days.length, reasons: reasons.length, events: events.length, todos: todos.length, skipped };
 }
 
 function sanitizeDays(raw: unknown[]): DayRecord[] {
@@ -131,6 +136,24 @@ function sanitizeEvents(raw: unknown[]): LifeEvent[] {
     events.push({ id: event.id, date: event.date, label: event.label, color: event.color });
   }
   return events;
+}
+
+function sanitizeTodos(raw: unknown[]): TodoItem[] {
+  const todos: TodoItem[] = [];
+  for (const item of raw) {
+    if (!item || typeof item !== 'object') continue;
+    const todo = item as Partial<TodoItem>;
+    if (typeof todo.id !== 'string' || typeof todo.text !== 'string' || todo.text.trim() === '') continue;
+    const done = todo.done === true;
+    todos.push({
+      id: todo.id,
+      text: todo.text,
+      done,
+      createdAt: typeof todo.createdAt === 'number' ? todo.createdAt : Date.now(),
+      doneAt: done && typeof todo.doneAt === 'number' ? todo.doneAt : undefined,
+    });
+  }
+  return todos;
 }
 
 /** Returns undefined when the file carries no usable settings, keeping the current ones. */

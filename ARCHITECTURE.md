@@ -23,6 +23,7 @@ Code map:
 | Undo/redo stacks | `src/history.ts` |
 | Picker, tooltip, inline editing | `src/picker.ts`, `src/tooltip.ts`, `src/inlineedit.ts` |
 | Panels | `src/reasonspanel.ts`, `src/eventspanel.ts`, `src/settingspanel.ts` |
+| Focus list | `src/focuslist.ts` |
 | Backup export/import | `src/backup.ts` |
 | Wiring, types, styles | `src/main.ts`, `src/types.ts`, `src/style.css` |
 
@@ -34,22 +35,24 @@ Code map:
 - Reasons carry a severity of 1 to 5. A failed box is colored by its worst selected reason: yellow (mild) to dark red (severe). Reasons are editable and cannot be deleted while failed blocks reference them.
 - The clock row slides along the day (HH:MM:SS, blinking colons, "time is running...") and hour labels darken as they pass. On today's view only.
 - Life view: one box per week from your birthday (set it in Settings), current week highlighted in blue, weeks colored by life events (Events panel). Without a birthday the grid renders an example (born 1990-01-01, real events skipped); a dialog asks for the birthday, auto-opens once per page load, and reopens from the link in the view's summary. Counts of failed blocks per reason live in the Reasons panel.
-- Settings > Backup: Export downloads all four stores as one JSON file. Import asks for confirmation, then replaces the stores with the file's contents and refreshes the UI.
+- Focus: a to-do list under the day grid, always visible. Enter adds, circle toggles done, text click edits, x removes; "clear done" wipes completed items.
+- Settings > Backup: Export downloads all five stores as one JSON file. Import asks for confirmation, then replaces the stores with the file's contents and refreshes the UI.
 
 ## Data model
 
-IndexedDB database `ichido`, version 2:
+IndexedDB database `ichido`, version 3:
 
 | Store | Key | Contents |
 |-------|-----|----------|
 | `days` | `YYYY-MM-DD` (local time) | 48 cells `{ status, reasonIds[], note? }`, plus `updatedAt` |
 | `reasons` | id | `topic`, `severity` (1-5) |
 | `events` | id | `date`, `label`, `color` |
+| `todos` | id | `text`, `done`, `createdAt`, `doneAt?` |
 | `settings` | `app` | `birthdate`, `lifespanYears` |
 
 - `updatedAt` exists for the planned WebDAV sync (last-write-wins per day).
 - Days saved before multi-select reasons existed are migrated on read (`normalizeDay` in `src/db.ts`).
-- Backup: Export writes all four stores to a versioned JSON file. Import sanitizes the file (`sanitize*` in `src/backup.ts`), then clears and refills the stores in one transaction (`replaceAllStores` in `src/db.ts`); undo stacks are cleared and the UI re-reads from the database.
+- Backup: Export writes all five stores to a versioned JSON file. Import sanitizes the file (`sanitize*` in `src/backup.ts`), then clears and refills the stores in one transaction (`replaceAllStores` in `src/db.ts`); undo stacks are cleared and the UI re-reads from the database. Exports from before the focus list existed import with an empty `todos` store.
 
 ## Development
 
@@ -78,6 +81,7 @@ No server logic and no SPA redirects are needed; the built `dist/` is plain stat
 Shipped (this repo):
 
 - Day view: 48 half-hour boxes, drag painting, eraser, undo/redo
+- Focus list: always visible under the day grid, add/toggle/edit/delete, done items clearable in one click
 - Failure reasons: severity colors, multi-select, notes, per-reason counts, inline editing
 - Life in weeks with life events, birthday and lifespan settings, example grid before a birthday is set
 - Running clock and now indicator

@@ -1,9 +1,9 @@
-import type { AppSettings, Cell, DayRecord, LifeEvent, Reason } from './types';
+import type { AppSettings, Cell, DayRecord, LifeEvent, Reason, TodoItem } from './types';
 
 const DB_NAME = 'ichido';
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 
-type StoreName = 'days' | 'reasons' | 'settings' | 'events';
+type StoreName = 'days' | 'reasons' | 'settings' | 'events' | 'todos';
 
 let dbPromise: Promise<IDBDatabase> | null = null;
 
@@ -24,6 +24,9 @@ function open(): Promise<IDBDatabase> {
         }
         if (!db.objectStoreNames.contains('events')) {
           db.createObjectStore('events', { keyPath: 'id' });
+        }
+        if (!db.objectStoreNames.contains('todos')) {
+          db.createObjectStore('todos', { keyPath: 'id' });
         }
       };
       req.onsuccess = () => resolve(req.result);
@@ -107,23 +110,29 @@ export const db = {
   getEvents: () => getAll<LifeEvent>('events'),
   putEvent: (event: LifeEvent) => put('events', event),
   deleteEvent: (id: string) => remove('events', id),
+  getTodos: () => getAll<TodoItem>('todos'),
+  putTodo: (todo: TodoItem) => put('todos', todo),
+  deleteTodo: (id: string) => remove('todos', id),
   /** Wipes and refills the stores in one transaction; used by backup import. */
   replaceAllStores: async (data: {
     days: DayRecord[];
     reasons: Reason[];
     events: LifeEvent[];
+    todos: TodoItem[];
     settings?: AppSettings;
   }): Promise<void> =>
     open().then(
       (db) =>
         new Promise<void>((resolve, reject) => {
-          const tx = db.transaction(['days', 'reasons', 'settings', 'events'], 'readwrite');
+          const tx = db.transaction(['days', 'reasons', 'settings', 'events', 'todos'], 'readwrite');
           tx.objectStore('days').clear();
           tx.objectStore('reasons').clear();
           tx.objectStore('events').clear();
+          tx.objectStore('todos').clear();
           for (const day of data.days) tx.objectStore('days').put(day);
           for (const reason of data.reasons) tx.objectStore('reasons').put(reason);
           for (const event of data.events) tx.objectStore('events').put(event);
+          for (const todo of data.todos) tx.objectStore('todos').put(todo);
           if (data.settings) {
             tx.objectStore('settings').clear();
             tx.objectStore('settings').put(data.settings);

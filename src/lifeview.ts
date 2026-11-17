@@ -1,5 +1,6 @@
 import { getEvents, getSettings, onEventsChange, onSettingsChange } from './state';
 import { EVENT_COLORS } from './state';
+import { openBirthdayModal } from './birthdaymodal';
 import { hideTooltip, showTooltip } from './tooltip';
 import type { TooltipContent } from './tooltip';
 import type { LifeEvent } from './types';
@@ -9,6 +10,9 @@ let summaryEl: HTMLElement;
 let gridEl: HTMLElement;
 let toggleBtn: HTMLButtonElement;
 let lastEventByWeek: Map<number, LifeEvent> | null = null;
+
+// shown before the user sets a real birthday so the section is never blank
+const EXAMPLE_BIRTHDATE = '1990-01-01';
 
 const mobileLayout = window.matchMedia('(max-width: 640px)');
 
@@ -63,15 +67,12 @@ function render(): void {
   gridEl.classList.toggle('mobile', mobileLayout.matches);
   gridEl.replaceChildren();
   const { birthdate, lifespanYears } = getSettings();
-  if (!birthdate) {
-    summaryEl.textContent = 'Set your birthday in Settings to see your life in weeks.';
-    gridEl.classList.add('hidden');
-    return;
-  }
+  const isExample = !birthdate;
+  const birth = birthdate ?? EXAMPLE_BIRTHDATE;
   gridEl.classList.remove('hidden');
 
   const lifespan = Math.min(120, Math.max(40, Math.round(lifespanYears ?? 90)));
-  const birthParts = birthdate.split('-');
+  const birthParts = birth.split('-');
   const birthUTC = Date.UTC(Number(birthParts[0]), Number(birthParts[1]) - 1, Number(birthParts[2]));
   const now = new Date();
   const todayUTC = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
@@ -79,21 +80,33 @@ function render(): void {
   const currentWeek = Math.floor(daysSince / 7);
   const currentRow = Math.floor(daysSince / 365.25);
   const total = lifespan * 52;
+  const age = Math.floor(daysSince / 365.25);
 
   const eventByWeek = new Map<number, LifeEvent>();
-  for (const event of getEvents()) {
-    const parts = event.date.split('-');
-    const idx = Math.floor((Date.UTC(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2])) - birthUTC) / 86400000 / 7);
-    if (idx >= 0 && idx < total && !eventByWeek.has(idx)) eventByWeek.set(idx, event);
+  if (!isExample) {
+    for (const event of getEvents()) {
+      const parts = event.date.split('-');
+      const idx = Math.floor((Date.UTC(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2])) - birthUTC) / 86400000 / 7);
+      if (idx >= 0 && idx < total && !eventByWeek.has(idx)) eventByWeek.set(idx, event);
+    }
   }
   lastEventByWeek = eventByWeek;
 
-  if (daysSince < 0) {
+  summaryEl.replaceChildren();
+  if (!isExample && daysSince < 0) {
     summaryEl.textContent = 'Birthday is in the future.';
-  } else if (currentWeek >= total) {
-    summaryEl.textContent = `Beyond the ${lifespan}-year grid - age ${Math.floor(daysSince / 365.25)}.`;
+  } else if (!isExample && currentWeek >= total) {
+    summaryEl.textContent = `Beyond the ${lifespan}-year grid - age ${age}.`;
+  } else if (isExample) {
+    summaryEl.append(document.createTextNode(`example - week ${currentWeek + 1} of ${total} - age ${age}`));
+    const setBtn = document.createElement('button');
+    setBtn.type = 'button';
+    setBtn.className = 'life-set-birthday';
+    setBtn.textContent = 'set your birthday';
+    setBtn.addEventListener('click', openBirthdayModal);
+    summaryEl.append(setBtn);
   } else {
-    summaryEl.textContent = `week ${currentWeek + 1} of ${total} - age ${Math.floor(daysSince / 365.25)}`;
+    summaryEl.textContent = `week ${currentWeek + 1} of ${total} - age ${age}`;
   }
 
   if (mobileLayout.matches) {

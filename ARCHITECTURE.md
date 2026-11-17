@@ -17,7 +17,7 @@ Code map:
 | Area | Files |
 |------|-------|
 | Day grid, gestures, running clock | `src/dayview.ts` |
-| Life in weeks | `src/lifeview.ts` |
+| Life in weeks, birthday prompt | `src/lifeview.ts`, `src/birthdaymodal.ts` |
 | Reasons, events, settings state | `src/state.ts` |
 | IndexedDB access and migration | `src/db.ts` |
 | Undo/redo stacks | `src/history.ts` |
@@ -33,7 +33,7 @@ Code map:
 - Undo/redo: one gesture is one step. History is session-only (cleared on refresh), Ctrl+Z / Ctrl+Shift+Z / Ctrl+Y also work.
 - Reasons carry a severity of 1 to 5. A failed box is colored by its worst selected reason: yellow (mild) to dark red (severe). Reasons are editable and cannot be deleted while failed blocks reference them.
 - The clock row slides along the day (HH:MM:SS, blinking colons, "time is running...") and hour labels darken as they pass. On today's view only.
-- Life view: one box per week from your birthday (set it in Settings), current week highlighted in blue, weeks colored by life events (Events panel). Counts of failed blocks per reason live in the Reasons panel.
+- Life view: one box per week from your birthday (set it in Settings), current week highlighted in blue, weeks colored by life events (Events panel). Without a birthday the grid renders an example (born 1990-01-01, real events skipped); a dialog asks for the birthday, auto-opens once per page load, and reopens from the link in the view's summary. Counts of failed blocks per reason live in the Reasons panel.
 - Settings > Backup: Export downloads all four stores as one JSON file. Import asks for confirmation, then replaces the stores with the file's contents and refreshes the UI.
 
 ## Data model
@@ -79,7 +79,7 @@ Shipped (this repo):
 
 - Day view: 48 half-hour boxes, drag painting, eraser, undo/redo
 - Failure reasons: severity colors, multi-select, notes, per-reason counts, inline editing
-- Life in weeks with life events, birthday and lifespan settings
+- Life in weeks with life events, birthday and lifespan settings, example grid before a birthday is set
 - Running clock and now indicator
 - Mobile layouts, dark mode, reduced-motion support
 - JSON export/import of all four stores

@@ -1,7 +1,8 @@
 import './style.css';
-import { initEvents, initReasons, initSettings, onReasonsChange } from './state';
+import { getSettings, initEvents, initReasons, initSettings, onReasonsChange } from './state';
 import { initDayView, rerenderDayView } from './dayview';
 import { initLifeView } from './lifeview';
+import { initBirthdayModal, openBirthdayModal } from './birthdaymodal';
 import { closePanel as closeReasonsPanel, initReasonsPanel, toggleReasonsPanel } from './reasonspanel';
 import { closePanel as closeEventsPanel, initEventsPanel, toggleEventsPanel } from './eventspanel';
 import { closePanel as closeSettingsPanel, initSettingsPanel, toggleSettingsPanel } from './settingspanel';
@@ -56,6 +57,8 @@ async function main(): Promise<void> {
   initReasonsPanel(app);
   initEventsPanel(app);
   initSettingsPanel(app);
+  initBirthdayModal(app);
+  if (!getSettings().birthdate) openBirthdayModal();
   onReasonsChange(rerenderDayView);
 }
 

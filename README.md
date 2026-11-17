@@ -11,7 +11,7 @@ Live at [ichido.leekaize.com](https://ichido.leekaize.com).
 
 - Click a box: done. Click a done box: pick reasons, add an optional note. Click a failed box to change or clear it.
 - Drag paints several boxes in one stroke; the eraser clears; Ctrl+Z undoes.
-- Settings holds your birthday and lifespan for the life-in-weeks view; Events colors weeks. Backup in Settings downloads all data as a JSON file and can restore it.
+- Settings holds your birthday and lifespan for the life-in-weeks view; until a birthday is set, that view shows an example grid and a dialog asks for yours. Events colors weeks. Backup in Settings downloads all data as a JSON file and can restore it.
 
 Everything is stored only in your browser (IndexedDB). Clearing site data erases it, so export a backup from Settings if the data matters to you.
 

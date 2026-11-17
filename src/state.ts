@@ -182,6 +182,18 @@ export async function initEvents(): Promise<void> {
   events.sort((a, b) => a.date.localeCompare(b.date));
 }
 
+/** Re-reads the caches from the database after a bulk change such as backup import. */
+export async function reloadFromDb(): Promise<void> {
+  reasons = await db.getReasons();
+  reasons.sort((a, b) => a.topic.localeCompare(b.topic));
+  settings = (await db.getSettings()) ?? { key: 'app' };
+  events = await db.getEvents();
+  events.sort((a, b) => a.date.localeCompare(b.date));
+  emitTo(reasonListeners);
+  emitTo(settingsListeners);
+  emitTo(eventsListeners);
+}
+
 export function getEvents(): LifeEvent[] {
   return events;
 }

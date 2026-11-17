@@ -1,4 +1,5 @@
-import { getSettings, setBirthday, setLifespan } from './state';
+import { exportJson, importJson } from './backup';
+import { getSettings, onSettingsChange, setBirthday, setLifespan } from './state';
 
 let panel: HTMLElement;
 
@@ -43,8 +44,70 @@ export function initSettingsPanel(parent: HTMLElement): void {
   });
   lifespanRow.append(lifespanLabel, lifespanInput);
 
-  panel.append(head, birthdayRow, lifespanRow);
+  const backupRow = document.createElement('div');
+  backupRow.className = 'settings-row';
+  const backupLabel = document.createElement('span');
+  backupLabel.textContent = 'Backup';
+  const backupButtons = document.createElement('div');
+  backupButtons.className = 'backup-buttons';
+  const exportBtn = document.createElement('button');
+  exportBtn.type = 'button';
+  exportBtn.textContent = 'Export';
+  exportBtn.title = 'Download all data as a JSON file';
+  const importBtn = document.createElement('button');
+  importBtn.type = 'button';
+  importBtn.textContent = 'Import';
+  importBtn.title = 'Replace all data with a JSON backup file';
+  backupButtons.append(exportBtn, importBtn);
+  backupRow.append(backupLabel, backupButtons);
+
+  const fileInput = document.createElement('input');
+  fileInput.type = 'file';
+  fileInput.accept = 'application/json,.json';
+  fileInput.hidden = true;
+
+  const status = document.createElement('p');
+  status.className = 'backup-status';
+  const showStatus = (text: string, isError = false): void => {
+    status.textContent = text;
+    status.classList.toggle('error', isError);
+  };
+
+  exportBtn.addEventListener('click', () => {
+    void exportJson()
+      .then(() => showStatus('Backup file downloaded.'))
+      .catch((error: unknown) => showStatus(`Export failed: ${errorText(error)}`, true));
+  });
+
+  importBtn.addEventListener('click', () => fileInput.click());
+
+  fileInput.addEventListener('change', () => {
+    const file = fileInput.files?.[0];
+    fileInput.value = '';
+    if (!file) return;
+    if (!window.confirm('Import replaces all data in this browser with the file contents. Continue?')) return;
+    showStatus('Importing...');
+    void importJson(file)
+      .then((summary) => {
+        const parts = [`${summary.days} days`, `${summary.reasons} reasons`, `${summary.events} events`];
+        const skipped = summary.skipped > 0 ? ` (${summary.skipped} bad records skipped)` : '';
+        showStatus(`Imported ${parts.join(', ')}${skipped}.`);
+      })
+      .catch((error: unknown) => showStatus(`Import failed: ${errorText(error)}`, true));
+  });
+
+  // after an import the cached settings change under this panel
+  onSettingsChange(() => {
+    birthdayInput.value = getSettings().birthdate ?? '';
+    lifespanInput.value = String(getSettings().lifespanYears ?? 90);
+  });
+
+  panel.append(head, birthdayRow, lifespanRow, backupRow, fileInput, status);
   parent.append(panel);
+}
+
+function errorText(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
 }
 
 export function toggleSettingsPanel(): void {

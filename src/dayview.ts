@@ -155,6 +155,11 @@ export function rerenderDayView(): void {
   renderGrid();
 }
 
+/** Re-fetches the shown date from the database, e.g. after backup import. */
+export function reloadDayView(): void {
+  void load(currentDate);
+}
+
 function toggleEraser(): void {
   eraserMode = !eraserMode;
   eraserBtn.classList.toggle('toggle-on', eraserMode);

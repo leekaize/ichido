@@ -54,6 +54,13 @@ export function popRedo(): HistoryEntry | undefined {
   return entry;
 }
 
+/** A bulk change such as backup import invalidates past entries. */
+export function clear(): void {
+  undoStack = [];
+  redoStack = [];
+  emit();
+}
+
 export function canUndo(): boolean {
   return undoStack.length > 0;
 }

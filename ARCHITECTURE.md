@@ -23,6 +23,7 @@ Code map:
 | Undo/redo stacks | `src/history.ts` |
 | Picker, tooltip, inline editing | `src/picker.ts`, `src/tooltip.ts`, `src/inlineedit.ts` |
 | Panels | `src/reasonspanel.ts`, `src/eventspanel.ts`, `src/settingspanel.ts` |
+| Backup export/import | `src/backup.ts` |
 | Wiring, types, styles | `src/main.ts`, `src/types.ts`, `src/style.css` |
 
 ## Interactions
@@ -33,6 +34,7 @@ Code map:
 - Reasons carry a severity of 1 to 5. A failed box is colored by its worst selected reason: yellow (mild) to dark red (severe). Reasons are editable and cannot be deleted while failed blocks reference them.
 - The clock row slides along the day (HH:MM:SS, blinking colons, "time is running...") and hour labels darken as they pass. On today's view only.
 - Life view: one box per week from your birthday (set it in Settings), current week highlighted in blue, weeks colored by life events (Events panel). Counts of failed blocks per reason live in the Reasons panel.
+- Settings > Backup: Export downloads all four stores as one JSON file. Import asks for confirmation, then replaces the stores with the file's contents and refreshes the UI.
 
 ## Data model
 
@@ -47,7 +49,7 @@ IndexedDB database `ichido`, version 2:
 
 - `updatedAt` exists for the planned WebDAV sync (last-write-wins per day).
 - Days saved before multi-select reasons existed are migrated on read (`normalizeDay` in `src/db.ts`).
-- There is no export yet: clearing browser data loses everything. Export/import is first on the roadmap below.
+- Backup: Export writes all four stores to a versioned JSON file. Import sanitizes the file (`sanitize*` in `src/backup.ts`), then clears and refills the stores in one transaction (`replaceAllStores` in `src/db.ts`); undo stacks are cleared and the UI re-reads from the database.
 
 ## Development
 
@@ -80,10 +82,10 @@ Shipped (this repo):
 - Life in weeks with life events, birthday and lifespan settings
 - Running clock and now indicator
 - Mobile layouts, dark mode, reduced-motion support
+- JSON export/import of all four stores
 
 Next:
 
-- JSON export/import of all four stores
 - Per-reason failure history: the list of failed blocks with their notes
 - Week, month, and year views
 

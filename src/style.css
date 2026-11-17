@@ -470,6 +470,21 @@ h1 {
   font-size: 0.85rem;
 }
 
+.backup-buttons {
+  display: flex;
+  gap: 0.35rem;
+}
+
+.backup-status {
+  margin: 0.25rem 0 0;
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.backup-status.error {
+  color: var(--failed);
+}
+
 .life-view {
   margin-top: 1.5rem;
 }

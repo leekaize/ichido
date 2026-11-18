@@ -5,10 +5,13 @@ import { hideTooltip, showTooltip } from './tooltip';
 import type { TooltipContent } from './tooltip';
 import type { LifeEvent } from './types';
 
+let sectionEl: HTMLElement;
 let bodyEl: HTMLElement;
 let summaryEl: HTMLElement;
 let gridEl: HTMLElement;
 let toggleBtn: HTMLButtonElement;
+let rowEl: HTMLElement | null = null;
+let expanded = false;
 let lastEventByWeek: Map<number, LifeEvent> | null = null;
 
 // shown before the user sets a real birthday so the section is never blank
@@ -17,8 +20,10 @@ const EXAMPLE_BIRTHDATE = '1990-01-01';
 const mobileLayout = window.matchMedia('(max-width: 640px)');
 
 export function initLifeView(parent: HTMLElement): void {
+  rowEl = parent;
   const section = document.createElement('section');
   section.className = 'life-view';
+  sectionEl = section;
 
   const head = document.createElement('div');
   head.className = 'life-head';
@@ -26,11 +31,8 @@ export function initLifeView(parent: HTMLElement): void {
   h2.textContent = 'Your life in weeks';
   toggleBtn = document.createElement('button');
   toggleBtn.type = 'button';
-  toggleBtn.textContent = 'hide';
-  toggleBtn.addEventListener('click', () => {
-    const hidden = bodyEl.classList.toggle('hidden');
-    toggleBtn.textContent = hidden ? 'show' : 'hide';
-  });
+  toggleBtn.textContent = 'expand';
+  toggleBtn.addEventListener('click', () => setExpanded(!expanded));
   head.append(h2, toggleBtn);
 
   bodyEl = document.createElement('div');
@@ -52,6 +54,9 @@ export function initLifeView(parent: HTMLElement): void {
   gridEl.className = 'life-grid';
   gridEl.addEventListener('pointermove', onLifeTooltipMove);
   gridEl.addEventListener('pointerleave', hideTooltip);
+  gridEl.addEventListener('click', () => {
+    if (!expanded) setExpanded(true);
+  });
 
   bodyEl.append(summaryEl, legend, gridEl);
   section.append(head, bodyEl);
@@ -63,13 +68,21 @@ export function initLifeView(parent: HTMLElement): void {
   render();
 }
 
+function setExpanded(value: boolean): void {
+  expanded = value;
+  sectionEl.classList.toggle('expanded', value);
+  rowEl?.classList.toggle('life-expanded', value);
+  toggleBtn.textContent = value ? 'collapse' : 'expand';
+  hideTooltip();
+  render();
+}
+
 function render(): void {
-  gridEl.classList.toggle('mobile', mobileLayout.matches);
+  gridEl.classList.toggle('mobile', expanded && mobileLayout.matches);
   gridEl.replaceChildren();
   const { birthdate, lifespanYears } = getSettings();
   const isExample = !birthdate;
   const birth = birthdate ?? EXAMPLE_BIRTHDATE;
-  gridEl.classList.remove('hidden');
 
   const lifespan = Math.min(120, Math.max(40, Math.round(lifespanYears ?? 90)));
   const birthParts = birth.split('-');
@@ -109,17 +122,23 @@ function render(): void {
     summaryEl.textContent = `week ${currentWeek + 1} of ${total} - age ${age}`;
   }
 
-  if (mobileLayout.matches) {
+  if (!expanded) {
+    // mini: static 52-column snapshot at a fixed small size, same shape on every screen
+    // no age labels here; 3px rows cannot hold them and the summary line carries the age
+    for (let week = 0; week < total; week++) {
+      gridEl.append(weekBox(week, currentWeek, eventByWeek, false));
+    }
+  } else if (mobileLayout.matches) {
     // two rows per year: first half of the year on top, second half below
     for (let year = 0; year < lifespan; year++) {
       gridEl.append(ageLabel(year, currentRow));
-      for (let week = 0; week < 26; week++) gridEl.append(weekBox(year * 52 + week, currentWeek, eventByWeek));
-      for (let week = 26; week < 52; week++) gridEl.append(weekBox(year * 52 + week, currentWeek, eventByWeek));
+      for (let week = 0; week < 26; week++) gridEl.append(weekBox(year * 52 + week, currentWeek, eventByWeek, true));
+      for (let week = 26; week < 52; week++) gridEl.append(weekBox(year * 52 + week, currentWeek, eventByWeek, true));
     }
   } else {
     for (let year = 0; year < lifespan; year++) {
       gridEl.append(ageLabel(year, currentRow));
-      for (let week = 0; week < 52; week++) gridEl.append(weekBox(year * 52 + week, currentWeek, eventByWeek));
+      for (let week = 0; week < 52; week++) gridEl.append(weekBox(year * 52 + week, currentWeek, eventByWeek, true));
     }
   }
 }
@@ -134,14 +153,16 @@ function ageLabel(row: number, currentRow: number): HTMLDivElement {
   return label;
 }
 
-function weekBox(idx: number, currentWeek: number, eventByWeek: Map<number, LifeEvent>): HTMLDivElement {
+function weekBox(idx: number, currentWeek: number, eventByWeek: Map<number, LifeEvent>, detailed: boolean): HTMLDivElement {
   const box = document.createElement('div');
   box.className = 'life-box';
   box.dataset.week = String(idx);
   const event = eventByWeek.get(idx);
   if (idx === currentWeek) box.classList.add('now');
-  const info = lifeTooltipData(idx, event);
-  box.setAttribute('aria-label', [info.main, info.sub].filter(Boolean).join(' - '));
+  if (detailed) {
+    const info = lifeTooltipData(idx, event);
+    box.setAttribute('aria-label', [info.main, info.sub].filter(Boolean).join(' - '));
+  }
   if (event) {
     box.classList.add('event');
     box.style.background = event.color;
@@ -153,6 +174,7 @@ function weekBox(idx: number, currentWeek: number, eventByWeek: Map<number, Life
 }
 
 function onLifeTooltipMove(event: PointerEvent): void {
+  if (!expanded) return;
   if (event.pointerType === 'touch') return;
   const box = event.target instanceof Element ? event.target.closest('.life-box') : null;
   if (!(box instanceof HTMLElement) || !lastEventByWeek) {

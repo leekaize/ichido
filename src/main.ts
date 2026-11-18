@@ -55,8 +55,13 @@ async function main(): Promise<void> {
   app.append(header);
 
   initDayView(app);
-  initFocusList(app);
-  initLifeView(app);
+
+  const lowerRow = document.createElement('div');
+  lowerRow.className = 'lower-row';
+  app.append(lowerRow);
+
+  initFocusList(lowerRow);
+  initLifeView(lowerRow);
   initReasonsPanel(app);
   initEventsPanel(app);
   initSettingsPanel(app);

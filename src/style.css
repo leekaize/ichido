@@ -580,6 +580,51 @@ h1 {
   color: var(--failed);
 }
 
+.lower-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 1.25rem;
+  align-items: start;
+  margin-top: 1.25rem;
+}
+
+.lower-row .focus,
+.lower-row .life-view {
+  margin-top: 0;
+}
+
+.lower-row.life-expanded {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.life-view:not(.expanded) .life-legend {
+  display: none;
+}
+
+.life-view:not(.expanded) .life-head h2 {
+  font-size: 0.85rem;
+}
+
+.life-view:not(.expanded) .life-summary {
+  margin: 0.25rem 0;
+}
+
+.life-view:not(.expanded) .life-grid {
+  grid-template-columns: repeat(52, 3px);
+  grid-auto-rows: 3px;
+  gap: 1px;
+  width: max-content;
+  cursor: pointer;
+}
+
+.life-view:not(.expanded) .life-box {
+  border-radius: 1px;
+}
+
+.life-view:not(.expanded) .life-box.now {
+  box-shadow: 0 0 0 1px var(--accent);
+}
+
 .life-view {
   margin-top: 1.5rem;
 }
@@ -593,10 +638,6 @@ h1 {
 .life-head h2 {
   font-size: 1rem;
   margin: 0;
-}
-
-.life-body.hidden {
-  display: none;
 }
 
 .life-summary {
@@ -633,10 +674,6 @@ h1 {
 
 .life-grid.mobile .life-age {
   grid-row: span 2;
-}
-
-.life-grid.hidden {
-  display: none;
 }
 
 .life-box {
@@ -687,6 +724,10 @@ h1 {
   .legend {
     flex-wrap: wrap;
     gap: 0.4rem 0.9rem;
+  }
+
+  .lower-row {
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .now-line {

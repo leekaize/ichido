@@ -34,8 +34,8 @@ Code map:
 - Undo/redo: one gesture is one step. History is session-only (cleared on refresh), Ctrl+Z / Ctrl+Shift+Z / Ctrl+Y also work.
 - Reasons carry a severity of 1 to 5. A failed box is colored by its worst selected reason: yellow (mild) to dark red (severe). Reasons are editable and cannot be deleted while failed blocks reference them.
 - The clock row slides along the day (HH:MM:SS, blinking colons, "time is running...") and hour labels darken as they pass. On today's view only.
-- Life view: one box per week from your birthday (set it in Settings), current week highlighted in blue, weeks colored by life events (Events panel). Without a birthday the grid renders an example (born 1990-01-01, real events skipped); a dialog asks for the birthday, auto-opens once per page load, and reopens from the link in the view's summary. Counts of failed blocks per reason live in the Reasons panel.
-- Focus: a to-do list under the day grid, always visible. Enter adds, circle toggles done, text click edits, x removes; "clear done" wipes completed items.
+- Life view: one box per week from your birthday (set it in Settings), current week highlighted in blue, weeks colored by life events (Events panel). It sits right of the focus list as a small static snapshot (no hover tooltips there); clicking it (or the expand button) opens the full grid below the focus list, collapse returns to the mini. Without a birthday the grid renders an example (born 1990-01-01, real events skipped); a dialog asks for the birthday, auto-opens once per page load, and reopens from the link in the view's summary. Counts of failed blocks per reason live in the Reasons panel.
+- Focus: a to-do list left of the life view, under the day grid, always visible. Enter adds, circle toggles done, text click edits, x removes; "clear done" wipes completed items.
 - Settings > Backup: Export downloads all five stores as one JSON file. Import asks for confirmation, then replaces the stores with the file's contents and refreshes the UI.
 
 ## Data model
@@ -81,9 +81,9 @@ No server logic and no SPA redirects are needed; the built `dist/` is plain stat
 Shipped (this repo):
 
 - Day view: 48 half-hour boxes, drag painting, eraser, undo/redo
-- Focus list: always visible under the day grid, add/toggle/edit/delete, done items clearable in one click
+- Focus list: always visible beside the life view, add/toggle/edit/delete, done items clearable in one click
 - Failure reasons: severity colors, multi-select, notes, per-reason counts, inline editing
-- Life in weeks with life events, birthday and lifespan settings, example grid before a birthday is set
+- Life in weeks with life events, birthday and lifespan settings, example grid before a birthday is set, scaled-down mini beside the focus list that expands to the full grid
 - Running clock and now indicator
 - Mobile layouts, dark mode, reduced-motion support
 - JSON export/import of all four stores

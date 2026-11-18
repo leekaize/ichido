@@ -1,5 +1,5 @@
 import './style.css';
-import { getSettings, initEvents, initReasons, initSettings, initTodos, onReasonsChange } from './state';
+import { getSettings, initEvents, initHabits, initReasons, initSettings, initTodos, onReasonsChange } from './state';
 import { initDayView, rerenderDayView } from './dayview';
 import { initLifeView } from './lifeview';
 import { initBirthdayModal, openBirthdayModal } from './birthdaymodal';
@@ -7,6 +7,7 @@ import { closePanel as closeReasonsPanel, initReasonsPanel, toggleReasonsPanel }
 import { closePanel as closeEventsPanel, initEventsPanel, toggleEventsPanel } from './eventspanel';
 import { closePanel as closeSettingsPanel, initSettingsPanel, toggleSettingsPanel } from './settingspanel';
 import { initFocusList } from './focuslist';
+import { initHabitTracker } from './habittracker';
 
 async function main(): Promise<void> {
   const app = document.querySelector<HTMLDivElement>('#app');
@@ -16,6 +17,7 @@ async function main(): Promise<void> {
   await initSettings();
   await initEvents();
   await initTodos();
+  await initHabits();
 
   const header = document.createElement('header');
   const title = document.createElement('h1');
@@ -60,7 +62,12 @@ async function main(): Promise<void> {
   lowerRow.className = 'lower-row';
   app.append(lowerRow);
 
-  initFocusList(lowerRow);
+  const focusCol = document.createElement('div');
+  focusCol.className = 'focus-col';
+  lowerRow.append(focusCol);
+
+  initFocusList(focusCol);
+  initHabitTracker(focusCol);
   initLifeView(lowerRow);
   initReasonsPanel(app);
   initEventsPanel(app);

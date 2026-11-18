@@ -24,6 +24,7 @@ Code map:
 | Picker, tooltip, inline editing | `src/picker.ts`, `src/tooltip.ts`, `src/inlineedit.ts` |
 | Panels | `src/reasonspanel.ts`, `src/eventspanel.ts`, `src/settingspanel.ts` |
 | Focus list | `src/focuslist.ts` |
+| Habit tracker | `src/habittracker.ts` |
 | Backup export/import | `src/backup.ts` |
 | Wiring, types, styles | `src/main.ts`, `src/types.ts`, `src/style.css` |
 
@@ -36,11 +37,12 @@ Code map:
 - The clock row slides along the day (HH:MM:SS, blinking colons, "time is running...") and hour labels darken as they pass. On today's view only.
 - Life view: one box per week from your birthday (set it in Settings), current week highlighted in blue, weeks colored by life events (Events panel). It sits right of the focus list as a small static snapshot (no hover tooltips there); clicking it (or the expand button) opens the full grid below the focus list, collapse returns to the mini. Without a birthday the grid renders an example (born 1990-01-01, real events skipped); a dialog asks for the birthday, auto-opens once per page load, and reopens from the link in the view's summary. Counts of failed blocks per reason live in the Reasons panel.
 - Focus: a to-do list left of the life view, under the day grid, always visible. Enter adds, circle toggles done, text click edits, x removes; "clear done" wipes completed items.
-- Settings > Backup: Export downloads all five stores as one JSON file. Import asks for confirmation, then replaces the stores with the file's contents and refreshes the UI.
+- Habits: clickable boxes under the focus list, always visible. Click marks the habit achieved today (box turns green), click again cancels. Text click renames, x deletes the habit and its history, Enter adds. Each box shows a strength bar: the share of achieved days over the last 30 days (only days since creation count), weighted with a 10-day half-life so recent days matter more; the bar runs red (weak) to green (strong). The streak in days sits next to the bar; today not being achieved yet does not break a streak that runs through yesterday.
+- Settings > Backup: Export downloads all six stores as one JSON file. Import asks for confirmation, then replaces the stores with the file's contents and refreshes the UI.
 
 ## Data model
 
-IndexedDB database `ichido`, version 3:
+IndexedDB database `ichido`, version 4:
 
 | Store | Key | Contents |
 |-------|-----|----------|
@@ -48,11 +50,12 @@ IndexedDB database `ichido`, version 3:
 | `reasons` | id | `topic`, `severity` (1-5) |
 | `events` | id | `date`, `label`, `color` |
 | `todos` | id | `text`, `done`, `createdAt`, `doneAt?` |
+| `habits` | id | `name`, `days[]` (sorted YYYY-MM-DD achieved), `createdAt` |
 | `settings` | `app` | `birthdate`, `lifespanYears` |
 
 - `updatedAt` exists for the planned WebDAV sync (last-write-wins per day).
 - Days saved before multi-select reasons existed are migrated on read (`normalizeDay` in `src/db.ts`).
-- Backup: Export writes all five stores to a versioned JSON file. Import sanitizes the file (`sanitize*` in `src/backup.ts`), then clears and refills the stores in one transaction (`replaceAllStores` in `src/db.ts`); undo stacks are cleared and the UI re-reads from the database. Exports from before the focus list existed import with an empty `todos` store.
+- Backup: Export writes all six stores to a versioned JSON file. Import sanitizes the file (`sanitize*` in `src/backup.ts`), then clears and refills the stores in one transaction (`replaceAllStores` in `src/db.ts`); undo stacks are cleared and the UI re-reads from the database. Exports from before the focus list existed import with an empty `todos` store; exports from before the habit tracker existed import with an empty `habits` store.
 
 ## Development
 
@@ -81,12 +84,13 @@ No server logic and no SPA redirects are needed; the built `dist/` is plain stat
 Shipped (this repo):
 
 - Day view: 48 half-hour boxes, drag painting, eraser, undo/redo
-- Focus list: always visible beside the life view, add/toggle/edit/delete, done items clearable in one click
+- Focus list: always visible beside the life view, under the day grid, add/toggle/edit/delete, done items clearable in one click
+- Habit tracker below the focus list: click to mark achieved today, strength bar over the last 30 days with a 10-day half-life, streak count
 - Failure reasons: severity colors, multi-select, notes, per-reason counts, inline editing
 - Life in weeks with life events, birthday and lifespan settings, example grid before a birthday is set, scaled-down mini beside the focus list that expands to the full grid
 - Running clock and now indicator
 - Mobile layouts, dark mode, reduced-motion support
-- JSON export/import of all four stores
+- JSON export/import of all stores
 
 Next:
 

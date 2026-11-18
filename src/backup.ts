@@ -2,9 +2,9 @@ import { db } from './db';
 import { reloadFromDb } from './state';
 import { reloadDayView } from './dayview';
 import { clear as clearHistory } from './history';
-import type { AppSettings, Cell, CellStatus, DayRecord, LifeEvent, Reason, TodoItem } from './types';
+import type { AppSettings, Cell, CellStatus, DayRecord, Habit, LifeEvent, Reason, TodoItem } from './types';
 
-const EXPORT_VERSION = 3;
+const EXPORT_VERSION = 4;
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 export interface ImportSummary {
@@ -12,16 +12,18 @@ export interface ImportSummary {
   reasons: number;
   events: number;
   todos: number;
+  habits: number;
   skipped: number;
 }
 
 /** Downloads every store as one JSON file. */
 export async function exportJson(): Promise<void> {
-  const [days, reasons, events, todos, settings] = await Promise.all([
+  const [days, reasons, events, todos, habits, settings] = await Promise.all([
     db.getAllDays(),
     db.getReasons(),
     db.getEvents(),
     db.getTodos(),
+    db.getHabits(),
     db.getSettings(),
   ]);
   const payload = {
@@ -32,6 +34,7 @@ export async function exportJson(): Promise<void> {
     reasons,
     events,
     todos,
+    habits,
     settings: settings ?? null,
   };
   const url = URL.createObjectURL(
@@ -52,7 +55,7 @@ export async function importJson(file: File): Promise<ImportSummary> {
   } catch {
     throw new Error('not valid JSON');
   }
-  const data = parsed as { days?: unknown; reasons?: unknown; events?: unknown; todos?: unknown; settings?: unknown } | null;
+  const data = parsed as { days?: unknown; reasons?: unknown; events?: unknown; todos?: unknown; habits?: unknown; settings?: unknown } | null;
   if (!data || !Array.isArray(data.days) || !Array.isArray(data.reasons) || !Array.isArray(data.events)) {
     throw new Error('not an ichido export');
   }
@@ -60,17 +63,19 @@ export async function importJson(file: File): Promise<ImportSummary> {
   const days = sanitizeDays(data.days);
   const reasons = sanitizeReasons(data.reasons);
   const events = sanitizeEvents(data.events);
-  // exports from before the focus list existed carry no todos
+  // exports from before the focus list existed carry no todos;
+  // exports from before the habit tracker existed carry no habits
   const todos = Array.isArray(data.todos) ? sanitizeTodos(data.todos) : [];
+  const habits = Array.isArray(data.habits) ? sanitizeHabits(data.habits) : [];
   const settings = sanitizeSettings(data.settings);
   const skipped =
-    data.days.length - days.length + (data.reasons.length - reasons.length) + (data.events.length - events.length) + (Array.isArray(data.todos) ? data.todos.length - todos.length : 0);
+    data.days.length - days.length + (data.reasons.length - reasons.length) + (data.events.length - events.length) + (Array.isArray(data.todos) ? data.todos.length - todos.length : 0) + (Array.isArray(data.habits) ? data.habits.length - habits.length : 0);
 
-  await db.replaceAllStores({ days, reasons, events, todos, settings });
+  await db.replaceAllStores({ days, reasons, events, todos, habits, settings });
   clearHistory();
   await reloadFromDb();
   reloadDayView();
-  return { days: days.length, reasons: reasons.length, events: events.length, todos: todos.length, skipped };
+  return { days: days.length, reasons: reasons.length, events: events.length, todos: todos.length, habits: habits.length, skipped };
 }
 
 function sanitizeDays(raw: unknown[]): DayRecord[] {
@@ -154,6 +159,23 @@ function sanitizeTodos(raw: unknown[]): TodoItem[] {
     });
   }
   return todos;
+}
+
+function sanitizeHabits(raw: unknown[]): Habit[] {
+  const habits: Habit[] = [];
+  for (const item of raw) {
+    if (!item || typeof item !== 'object') continue;
+    const habit = item as Partial<Habit>;
+    if (typeof habit.id !== 'string' || typeof habit.name !== 'string' || habit.name.trim() === '') continue;
+    const days = Array.isArray(habit.days) ? habit.days.filter((day): day is string => typeof day === 'string' && DATE_RE.test(day)) : [];
+    habits.push({
+      id: habit.id,
+      name: habit.name,
+      createdAt: typeof habit.createdAt === 'number' ? habit.createdAt : Date.now(),
+      days: [...new Set(days)].sort(),
+    });
+  }
+  return habits;
 }
 
 /** Returns undefined when the file carries no usable settings, keeping the current ones. */

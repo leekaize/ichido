@@ -333,6 +333,119 @@ h1 {
   display: none;
 }
 
+.focus-col {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.habits {
+  margin-top: 1.25rem;
+}
+
+.habits-add {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.habits-label {
+  font-size: 0.75rem;
+  color: var(--muted);
+  flex: none;
+}
+
+.habits-form {
+  flex: 1;
+  min-width: 0;
+}
+
+.habits-form input {
+  width: 100%;
+  font-size: 0.85rem;
+}
+
+.habits-list {
+  margin-top: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.habit-box {
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--panel-bg);
+  padding: 0.4rem 0.55rem;
+  cursor: pointer;
+  user-select: none;
+}
+
+.habit-box:hover {
+  border-color: var(--muted);
+}
+
+.habit-box.achieved {
+  border-color: var(--done);
+  background: color-mix(in srgb, var(--done) 14%, var(--panel-bg));
+}
+
+.habit-top {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+}
+
+.habit-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.habit-box.achieved .habit-name {
+  color: var(--done);
+  font-weight: 600;
+}
+
+.habit-streak {
+  flex: none;
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.habit-box.achieved .habit-streak {
+  color: var(--done);
+}
+
+.habit-del {
+  border: none;
+  background: none;
+  color: var(--muted);
+  padding: 0 0.2rem;
+  font-size: 0.8rem;
+  flex: none;
+}
+
+.habit-del:hover {
+  color: var(--failed);
+}
+
+.habit-track {
+  margin-top: 0.3rem;
+  height: 5px;
+  border-radius: 3px;
+  background: var(--empty);
+  overflow: hidden;
+}
+
+.habit-fill {
+  height: 100%;
+  border-radius: 3px;
+}
+
 .tooltip {
   position: fixed;
   z-index: 40;

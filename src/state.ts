@@ -1,8 +1,12 @@
 import { db } from './db';
-import type { AppSettings, LifeEvent, Reason, TodoItem } from './types';
+import type { AppSettings, Habit, LifeEvent, Reason, TodoItem } from './types';
 
 export const SEVERITY_MAX = 5;
 const DEFAULT_SEVERITY = 3;
+
+/** Strength window and decay: only the last N days count, recent days weigh more. */
+const STRENGTH_WINDOW_DAYS = 30;
+const STRENGTH_HALF_LIFE_DAYS = 10;
 
 export const EVENT_COLORS = [
   'hsl(210, 70%, 55%)',
@@ -17,6 +21,7 @@ let reasons: Reason[] = [];
 let settings: AppSettings = { key: 'app' };
 let events: LifeEvent[] = [];
 let todos: TodoItem[] = [];
+let habits: Habit[] = [];
 
 type Listener = () => void;
 
@@ -24,6 +29,7 @@ const reasonListeners: Listener[] = [];
 const settingsListeners: Listener[] = [];
 const eventsListeners: Listener[] = [];
 const todoListeners: Listener[] = [];
+const habitListeners: Listener[] = [];
 
 export function onReasonsChange(fn: Listener): void {
   reasonListeners.push(fn);
@@ -39,6 +45,10 @@ export function onEventsChange(fn: Listener): void {
 
 export function onTodosChange(fn: Listener): void {
   todoListeners.push(fn);
+}
+
+export function onHabitsChange(fn: Listener): void {
+  habitListeners.push(fn);
 }
 
 function emitTo(listeners: Listener[]): void {
@@ -197,10 +207,13 @@ export async function reloadFromDb(): Promise<void> {
   events.sort((a, b) => a.date.localeCompare(b.date));
   todos = await db.getTodos();
   todos.sort((a, b) => a.createdAt - b.createdAt);
+  habits = await db.getHabits();
+  habits.sort((a, b) => a.createdAt - b.createdAt);
   emitTo(reasonListeners);
   emitTo(settingsListeners);
   emitTo(eventsListeners);
   emitTo(todoListeners);
+  emitTo(habitListeners);
 }
 
 export function getEvents(): LifeEvent[] {
@@ -281,6 +294,115 @@ export async function clearDoneTodos(): Promise<void> {
   for (const id of doneIds) await db.deleteTodo(id);
   todos = todos.filter((todo) => !todo.done);
   emitTo(todoListeners);
+}
+
+export async function initHabits(): Promise<void> {
+  habits = await db.getHabits();
+  habits.sort((a, b) => a.createdAt - b.createdAt);
+}
+
+export function getHabits(): Habit[] {
+  return habits;
+}
+
+export async function addHabit(name: string): Promise<void> {
+  const trimmed = name.trim();
+  if (!trimmed) return;
+  const habit: Habit = { id: crypto.randomUUID(), name: trimmed, createdAt: Date.now(), days: [] };
+  await db.putHabit(habit);
+  habits = [...habits, habit];
+  emitTo(habitListeners);
+}
+
+export async function removeHabit(id: string): Promise<void> {
+  await db.deleteHabit(id);
+  habits = habits.filter((habit) => habit.id !== id);
+  emitTo(habitListeners);
+}
+
+export async function renameHabit(id: string, name: string): Promise<void> {
+  const trimmed = name.trim();
+  if (!trimmed) return;
+  const habit = habits.find((h) => h.id === id);
+  if (!habit || habit.name === trimmed) return;
+  const next: Habit = { ...habit, name: trimmed };
+  await db.putHabit(next);
+  habits = habits.map((h) => (h.id === id ? next : h));
+  emitTo(habitListeners);
+}
+
+/** Clicking a habit box marks it achieved today; clicking again cancels. */
+export async function toggleHabitToday(id: string): Promise<void> {
+  const habit = habits.find((h) => h.id === id);
+  if (!habit) return;
+  const today = localDateStr(new Date());
+  const days = habit.days.includes(today) ? habit.days.filter((d) => d !== today) : [...habit.days, today].sort();
+  const next: Habit = { ...habit, days };
+  await db.putHabit(next);
+  habits = habits.map((h) => (h.id === id ? next : h));
+  emitTo(habitListeners);
+}
+
+function pad2(n: number): string {
+  return String(n).padStart(2, '0');
+}
+
+/** Local-time YYYY-MM-DD, same format the days store uses for keys. */
+export function localDateStr(date: Date): string {
+  return `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}`;
+}
+
+function dateFromStr(str: string): Date {
+  const [y, m, d] = str.split('-').map(Number);
+  return new Date(y, m - 1, d);
+}
+
+function addDaysStr(str: string, delta: number): string {
+  const date = dateFromStr(str);
+  date.setDate(date.getDate() + delta);
+  return localDateStr(date);
+}
+
+function daysBetween(from: string, to: string): number {
+  return Math.round((dateFromStr(to).getTime() - dateFromStr(from).getTime()) / 86400000);
+}
+
+/**
+ * Recent completion, 0-100. Counts at most the last 30 days (only days since
+ * the habit was created), each day weighted by exponential decay with a
+ * 10-day half-life, so yesterday matters about as much as the last week combined.
+ */
+export function habitStrength(habit: Habit, today = localDateStr(new Date())): number {
+  const hits = new Set(habit.days);
+  const earliest = addDaysStr(today, -(STRENGTH_WINDOW_DAYS - 1));
+  const created = localDateStr(new Date(habit.createdAt));
+  const start = created > earliest ? created : earliest;
+  if (start > today) return 0; // clock jumped backward since creation
+  let num = 0;
+  let den = 0;
+  for (let day = start; ; day = addDaysStr(day, 1)) {
+    const weight = Math.pow(0.5, daysBetween(day, today) / STRENGTH_HALF_LIFE_DAYS);
+    den += weight;
+    if (hits.has(day)) num += weight;
+    if (day === today) break;
+  }
+  return den > 0 ? Math.round((100 * num) / den) : 0;
+}
+
+/**
+ * Consecutive achieved days ending today. If today is not achieved yet the
+ * streak may still be alive through yesterday, since the day is not over.
+ */
+export function habitStreak(habit: Habit, today = localDateStr(new Date())): number {
+  const hits = new Set(habit.days);
+  let cursor = hits.has(today) ? today : addDaysStr(today, -1);
+  if (!hits.has(cursor)) return 0;
+  let streak = 0;
+  while (hits.has(cursor)) {
+    streak += 1;
+    cursor = addDaysStr(cursor, -1);
+  }
+  return streak;
 }
 
 export async function updateEvent(

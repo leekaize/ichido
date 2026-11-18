@@ -89,7 +89,7 @@ export function initSettingsPanel(parent: HTMLElement): void {
     showStatus('Importing...');
     void importJson(file)
       .then((summary) => {
-        const parts = [`${summary.days} days`, `${summary.reasons} reasons`, `${summary.events} events`, `${summary.todos} focus items`];
+        const parts = [`${summary.days} days`, `${summary.reasons} reasons`, `${summary.events} events`, `${summary.todos} focus items`, `${summary.habits} habits`];
         const skipped = summary.skipped > 0 ? ` (${summary.skipped} bad records skipped)` : '';
         showStatus(`Imported ${parts.join(', ')}${skipped}.`);
       })

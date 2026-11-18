@@ -1,9 +1,9 @@
-import type { AppSettings, Cell, DayRecord, LifeEvent, Reason, TodoItem } from './types';
+import type { AppSettings, Cell, DayRecord, Habit, LifeEvent, Reason, TodoItem } from './types';
 
 const DB_NAME = 'ichido';
-const DB_VERSION = 3;
+const DB_VERSION = 4;
 
-type StoreName = 'days' | 'reasons' | 'settings' | 'events' | 'todos';
+type StoreName = 'days' | 'reasons' | 'settings' | 'events' | 'todos' | 'habits';
 
 let dbPromise: Promise<IDBDatabase> | null = null;
 
@@ -27,6 +27,9 @@ function open(): Promise<IDBDatabase> {
         }
         if (!db.objectStoreNames.contains('todos')) {
           db.createObjectStore('todos', { keyPath: 'id' });
+        }
+        if (!db.objectStoreNames.contains('habits')) {
+          db.createObjectStore('habits', { keyPath: 'id' });
         }
       };
       req.onsuccess = () => resolve(req.result);
@@ -113,26 +116,32 @@ export const db = {
   getTodos: () => getAll<TodoItem>('todos'),
   putTodo: (todo: TodoItem) => put('todos', todo),
   deleteTodo: (id: string) => remove('todos', id),
+  getHabits: () => getAll<Habit>('habits'),
+  putHabit: (habit: Habit) => put('habits', habit),
+  deleteHabit: (id: string) => remove('habits', id),
   /** Wipes and refills the stores in one transaction; used by backup import. */
   replaceAllStores: async (data: {
     days: DayRecord[];
     reasons: Reason[];
     events: LifeEvent[];
     todos: TodoItem[];
+    habits: Habit[];
     settings?: AppSettings;
   }): Promise<void> =>
     open().then(
       (db) =>
         new Promise<void>((resolve, reject) => {
-          const tx = db.transaction(['days', 'reasons', 'settings', 'events', 'todos'], 'readwrite');
+          const tx = db.transaction(['days', 'reasons', 'settings', 'events', 'todos', 'habits'], 'readwrite');
           tx.objectStore('days').clear();
           tx.objectStore('reasons').clear();
           tx.objectStore('events').clear();
           tx.objectStore('todos').clear();
+          tx.objectStore('habits').clear();
           for (const day of data.days) tx.objectStore('days').put(day);
           for (const reason of data.reasons) tx.objectStore('reasons').put(reason);
           for (const event of data.events) tx.objectStore('events').put(event);
           for (const todo of data.todos) tx.objectStore('todos').put(todo);
+          for (const habit of data.habits) tx.objectStore('habits').put(habit);
           if (data.settings) {
             tx.objectStore('settings').clear();
             tx.objectStore('settings').put(data.settings);

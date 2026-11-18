@@ -37,6 +37,14 @@ export interface TodoItem {
   doneAt?: number;
 }
 
+export interface Habit {
+  id: string;
+  name: string;
+  createdAt: number;
+  /** sorted YYYY-MM-DD (local time) of every day the habit was achieved */
+  days: string[];
+}
+
 export interface AppSettings {
   key: 'app';
   birthdate?: string; // YYYY-MM-DD, anchors the life view

@@ -67,7 +67,7 @@ export async function initReasons(): Promise<void> {
   let stored = await db.getReasons();
   if (stored.length === 0) {
     for (const [topic, severity] of DEFAULT_REASONS) {
-      await db.putReason({ id: crypto.randomUUID(), topic, severity, createdAt: Date.now() });
+      await db.putReason({ id: newId(), topic, severity, createdAt: Date.now() });
     }
     stored = await db.getReasons();
   }
@@ -97,7 +97,7 @@ export function getReason(id: string): Reason | undefined {
 export async function addReason(topic: string): Promise<void> {
   const trimmed = topic.trim();
   if (!trimmed) return;
-  const reason: Reason = { id: crypto.randomUUID(), topic: trimmed, severity: DEFAULT_SEVERITY, createdAt: Date.now() };
+  const reason: Reason = { id: newId(), topic: trimmed, severity: DEFAULT_SEVERITY, createdAt: Date.now() };
   await db.putReason(reason);
   reasons = [...reasons, reason];
   reasons.sort((a, b) => a.topic.localeCompare(b.topic));
@@ -223,7 +223,7 @@ export function getEvents(): LifeEvent[] {
 export async function addEvent(label: string, date: string, color: string): Promise<void> {
   const trimmed = label.trim();
   if (!trimmed || !date) return;
-  const event: LifeEvent = { id: crypto.randomUUID(), date, label: trimmed, color };
+  const event: LifeEvent = { id: newId(), date, label: trimmed, color };
   await db.putEvent(event);
   events = [...events, event];
   events.sort((a, b) => a.date.localeCompare(b.date));
@@ -255,7 +255,7 @@ export function sortedTodos(): TodoItem[] {
 export async function addTodo(text: string): Promise<void> {
   const trimmed = text.trim();
   if (!trimmed) return;
-  const todo: TodoItem = { id: crypto.randomUUID(), text: trimmed, done: false, createdAt: Date.now() };
+  const todo: TodoItem = { id: newId(), text: trimmed, done: false, createdAt: Date.now() };
   await db.putTodo(todo);
   todos = [...todos, todo];
   emitTo(todoListeners);
@@ -308,7 +308,7 @@ export function getHabits(): Habit[] {
 export async function addHabit(name: string): Promise<void> {
   const trimmed = name.trim();
   if (!trimmed) return;
-  const habit: Habit = { id: crypto.randomUUID(), name: trimmed, createdAt: Date.now(), days: [] };
+  const habit: Habit = { id: newId(), name: trimmed, createdAt: Date.now(), days: [] };
   await db.putHabit(habit);
   habits = [...habits, habit];
   emitTo(habitListeners);
@@ -345,6 +345,16 @@ export async function toggleHabitToday(id: string): Promise<void> {
 
 function pad2(n: number): string {
   return String(n).padStart(2, '0');
+}
+
+/** crypto.randomUUID needs HTTPS or localhost; getRandomValues works everywhere. */
+function newId(): string {
+  if (typeof crypto.randomUUID === 'function') return crypto.randomUUID();
+  const bytes = crypto.getRandomValues(new Uint8Array(16));
+  bytes[6] = (bytes[6] & 0x0f) | 0x40; // version 4
+  bytes[8] = (bytes[8] & 0x3f) | 0x80; // RFC 4122 variant
+  const hex = [...bytes].map((b) => b.toString(16).padStart(2, '0')).join('');
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
 }
 
 /** Local-time YYYY-MM-DD, same format the days store uses for keys. */

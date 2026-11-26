@@ -3,7 +3,7 @@
 You only live once.
 Keep going forward, one step at a time.
 
-ichido is a local-first day tracker. Mark each half-hour of the day as done, or failed with reasons and a note, and see your whole life in weeks ([inspired by waitbutwhy](https://waitbutwhy.com/2014/05/life-weeks.html)). No backend, no accounts: all data stays in your browser until you clear it.
+ichido is a local-first day tracker. Mark each half-hour of the day as done, or failed with reasons and a note, and see your whole life in weeks ([inspired by waitbutwhy](https://waitbutwhy.com/2014/05/life-weeks.html)). All data lives in your browser; an optional self-hosted sync keeps one backup copy on your own Cloudflare account.
 
 Live at [ichido.leekaize.com](https://ichido.leekaize.com).
 
@@ -14,8 +14,8 @@ Live at [ichido.leekaize.com](https://ichido.leekaize.com).
 - Focus list left of the life view, under the day grid: type and press Enter to add, click the circle to mark done, click text to edit, x removes.
 - Habit tracker below the focus list: Enter adds a habit, clicking its box marks it achieved today (green) and clicking again cancels. Each box shows a strength bar over the last 30 days and the current streak; click text to rename, x deletes.
 - The life-in-weeks view sits right of the focus list as a small static snapshot; click it (or the expand button) to open the full grid below the focus list, collapse returns to the mini.
-- Settings holds your birthday and lifespan for the life-in-weeks view; until a birthday is set, that view shows an example grid and a dialog asks for yours. Events colors weeks. Backup in Settings downloads all data as a JSON file and can restore it.
+- Settings holds your birthday and lifespan for the life-in-weeks view; until a birthday is set, that view shows an example grid and a dialog asks for yours. Events colors weeks. Backup in Settings downloads all data as a JSON file and can restore it. Sync in Settings (Push/Pull) mirrors all data to your own Cloudflare Worker after you paste a sync token once.
 
-Everything is stored only in your browser (IndexedDB). Clearing site data erases it, so export a backup from Settings if the data matters to you.
+Everything is stored in your browser (IndexedDB). Push in Settings additionally keeps one server-side copy on your Cloudflare account; Pull brings that copy back into any browser. Clearing site data erases the local copy, so export a backup or Push if the data matters to you.
 
 Developer notes, data model, and roadmap: [ARCHITECTURE.md](ARCHITECTURE.md).

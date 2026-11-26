@@ -4,12 +4,13 @@ Developer notes for ichido. User-facing readme lives in [README.md](README.md).
 
 ## Architecture
 
-One static page, no server. The UI reads and writes one IndexedDB record per day; a later WebDAV sync will just copy those records to Nextcloud and back.
+One static page plus one small server route. The UI reads and writes one IndexedDB record per day; the optional sync copies a whole-store backup JSON to a Workers KV namespace and back.
 
 ```mermaid
 flowchart LR
     UI[UI: day grid, life weeks, panels] <--> DB[(IndexedDB in the browser)]
-    DB -. planned .-> WEB[WebDAV: Nextcloud]
+    UI -. push / pull .-> API[Worker: /api/backup]
+    API --> KV[(Workers KV)]
 ```
 
 Code map:
@@ -26,6 +27,9 @@ Code map:
 | Focus list | `src/focuslist.ts` |
 | Habit tracker | `src/habittracker.ts` |
 | Backup export/import | `src/backup.ts` |
+| Sync client: push/pull, token storage | `src/sync.ts` |
+| Backup API route (runs on the Worker) | `routes/api/backup.ts` |
+| Environment schema (sync token) | `env.ts` |
 | Wiring, types, styles | `src/main.ts`, `src/types.ts`, `src/style.css` |
 
 ## Interactions
@@ -39,6 +43,7 @@ Code map:
 - Focus: a to-do list left of the life view, under the day grid, always visible. Enter adds, circle toggles done, text click edits, x removes; "clear done" wipes completed items.
 - Habits: clickable boxes under the focus list, always visible. Click marks the habit achieved today (box turns green), click again cancels. Text click renames, x deletes the habit and its history, Enter adds. Each box shows a strength bar: the share of achieved days over the last 30 days (only days since creation count), weighted with a 10-day half-life so recent days matter more; the bar runs red (weak) to green (strong). The streak in days sits next to the bar; today not being achieved yet does not break a streak that runs through yesterday.
 - Settings > Backup: Export downloads all six stores as one JSON file. Import asks for confirmation, then replaces the stores with the file's contents and refreshes the UI.
+- Settings > Sync: paste the sync token once (kept in localStorage, never inside backups), then Push sends all stores to the server and Pull replaces this browser's stores with the server copy after confirmation.
 
 ## Data model
 
@@ -53,31 +58,34 @@ IndexedDB database `ichido`, version 4:
 | `habits` | id | `name`, `days[]` (sorted YYYY-MM-DD achieved), `createdAt` |
 | `settings` | `app` | `birthdate`, `lifespanYears` |
 
-- `updatedAt` exists for the planned WebDAV sync (last-write-wins per day).
+- `updatedAt` is stored per day, ready for a future per-day last-write-wins merge; the current sync replaces whole stores.
 - Days saved before multi-select reasons existed are migrated on read (`normalizeDay` in `src/db.ts`).
-- Backup: Export writes all six stores to a versioned JSON file. Import sanitizes the file (`sanitize*` in `src/backup.ts`), then clears and refills the stores in one transaction (`replaceAllStores` in `src/db.ts`); undo stacks are cleared and the UI re-reads from the database. Exports from before the focus list existed import with an empty `todos` store; exports from before the habit tracker existed import with an empty `habits` store.
+- Backup: Export writes all six stores to a versioned JSON file. Import sanitizes the file (`sanitize*` in `src/backup.ts`), then clears and refills the stores in one transaction (`replaceAllStores` in `src/db.ts`); undo stacks are cleared and the UI re-reads from the database. Exports from before the focus list existed import with an empty `todos` store; exports from before the habit tracker existed import with an empty `habits` store. Sync Push reuses the same payload builder (`buildPayload`); Pull feeds the server copy through the same sanitize path (`applyBackup`).
 
 ## Development
 
 ```sh
 npm install
-npm run dev      # dev server
-npm run build    # type-checks (tsc) then bundles to dist/
-npm run preview  # serve the build locally
+npm run dev      # dev server: client plus a local Worker running routes/
+npm run build    # type-checks (tsc) then bundles via Void's vite plugin
 ```
 
-TypeScript strict mode, vanilla DOM, no runtime dependencies. Vite is the only tooling.
+TypeScript strict mode, vanilla DOM on the client, no runtime dependencies. Void is the only framework: it serves `routes/api/backup.ts` on a local Worker in dev and deploys the whole thing to Cloudflare Workers. Node 24 is pinned via Volta (the `volta` key in `package.json`).
+
+`tsc` only checks `src/` (see `include` in `tsconfig.json`); `routes/` is exercised by the dev server and the build, not by `tsc`. The root tsconfig keeps `"files": []` so the generated `.void/*.d.ts` (server types, Cloudflare workers types) stay out of the DOM program: they clash with lib.dom on `append` and friends.
 
 Breakpoints: below 640px the day grid splits into two halves (hours 0-11, then 12-23) and the life grid into two 26-week rows per year; both switch via `matchMedia` and re-render on rotation.
 
 ## Deploy
 
-Cloudflare Pages, project `ichido`, custom domain `ichido.leekaize.com`:
+Cloudflare Worker managed by Void. Worker name `ichido` (`cloudflare.name` in `void.config.ts`), provisioned resources and account recorded in `void.lock.json`:
 
-- Git integration: build command `npm run build`, output directory `dist`; every push to the production branch redeploys.
-- Direct upload: `npm run build` then `npx wrangler pages deploy dist --project-name ichido`.
+- Deploy: `npx void deploy`. Builds both bundles, reuses the provisioned KV binding, uploads a staged version, runs a readiness check, then switches traffic; a version that fails readiness never serves.
+- Auth for the CLI: browser sign-in with `void cloudflare login` (needs an OS keyring; on this WSL install `libsecret-tools` + `gnome-keyring` first), or a `CLOUDFLARE_API_TOKEN` environment variable with Workers Scripts: Edit and Workers KV Storage: Edit. An env token takes precedence over a stored session.
+- Production secrets: `void secret put SYNC_TOKEN=...` for the token declared in `env.ts`; deploy refuses to upload while a required server secret is missing remotely. Local `.env` values never deploy.
+- Live: custom domain `ichido.leekaize.com`, also served at `https://ichido.leekaize.workers.dev`. Cloudflare Pages is no longer used; the old `deploy.sh` (wrangler pages deploy) is removed.
 
-No server logic and no SPA redirects are needed; the built `dist/` is plain static files. Deploy updates never touch stored data; schema changes go through the IndexedDB version upgrade in `src/db.ts`.
+Deploys never touch stored data: IndexedDB stays in the browser, the sync backup stays in Workers KV. IndexedDB schema changes go through the version upgrade in `src/db.ts`.
 
 ## Roadmap
 
@@ -91,6 +99,7 @@ Shipped (this repo):
 - Running clock and now indicator
 - Mobile layouts, dark mode, reduced-motion support
 - JSON export/import of all stores
+- Server backup sync: Push/Pull to Workers KV behind a sync token, served by a Void Worker on Cloudflare
 
 Next:
 
@@ -99,7 +108,7 @@ Next:
 
 Later:
 
-- WebDAV (Nextcloud) sync, last-write-wins per day
+- Per-day last-write-wins merge using `DayRecord.updatedAt`, instead of the whole-file restore the sync does now
 - CalDAV: show planned events from a Nextcloud calendar
 - PWA/service worker so the page itself loads offline
 - Keyboard navigation for the grids

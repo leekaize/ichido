@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "source": {
+    "name": "ichido"
+  },
+  "resolved": {
+    "account_id": "74aef4d255d00fd6d8d7a2d51907bc3e",
+    "compatibility_date": "2026-02-24",
+    "name": "ichido",
+    "kv_namespaces": [
+      {
+        "binding": "KV",
+        "id": "d6127108c3a34b36837cae99f915319f"
+      }
+    ]
+  },
+  "text": "{\n  \"account_id\": \"74aef4d255d00fd6d8d7a2d51907bc3e\",\n  \"compatibility_date\": \"2026-02-24\",\n  \"name\": \"ichido\",\n  \"kv_namespaces\": [\n    {\n      \"binding\": \"KV\",\n      \"id\": \"d6127108c3a34b36837cae99f915319f\"\n    }\n  ]\n}\n"
+}

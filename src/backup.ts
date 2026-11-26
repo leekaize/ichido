@@ -16,8 +16,20 @@ export interface ImportSummary {
   skipped: number;
 }
 
-/** Downloads every store as one JSON file. */
-export async function exportJson(): Promise<void> {
+export interface BackupPayload {
+  app: string;
+  version: number;
+  exportedAt: string;
+  days: DayRecord[];
+  reasons: Reason[];
+  events: LifeEvent[];
+  todos: TodoItem[];
+  habits: Habit[];
+  settings: AppSettings | null;
+}
+
+/** Collects every store as one payload object, shared by export and sync push. */
+export async function buildPayload(): Promise<BackupPayload> {
   const [days, reasons, events, todos, habits, settings] = await Promise.all([
     db.getAllDays(),
     db.getReasons(),
@@ -26,7 +38,7 @@ export async function exportJson(): Promise<void> {
     db.getHabits(),
     db.getSettings(),
   ]);
-  const payload = {
+  return {
     app: 'ichido',
     version: EXPORT_VERSION,
     exportedAt: new Date().toISOString(),
@@ -37,6 +49,11 @@ export async function exportJson(): Promise<void> {
     habits,
     settings: settings ?? null,
   };
+}
+
+/** Downloads every store as one JSON file. */
+export async function exportJson(): Promise<void> {
+  const payload = await buildPayload();
   const url = URL.createObjectURL(
     new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' }),
   );
@@ -55,6 +72,11 @@ export async function importJson(file: File): Promise<ImportSummary> {
   } catch {
     throw new Error('not valid JSON');
   }
+  return applyBackup(parsed);
+}
+
+/** Validates a parsed export, replaces all stores with it, and refreshes the UI. */
+export async function applyBackup(parsed: unknown): Promise<ImportSummary> {
   const data = parsed as { days?: unknown; reasons?: unknown; events?: unknown; todos?: unknown; habits?: unknown; settings?: unknown } | null;
   if (!data || !Array.isArray(data.days) || !Array.isArray(data.reasons) || !Array.isArray(data.events)) {
     throw new Error('not an ichido export');

@@ -1,4 +1,5 @@
-import { exportJson, importJson } from './backup';
+import { applyBackup, exportJson, importJson } from './backup';
+import { fetchBackup, getSyncToken, pushBackup, setSyncToken } from './sync';
 import { getSettings, onSettingsChange, setBirthday, setLifespan } from './state';
 
 let panel: HTMLElement;
@@ -61,6 +62,63 @@ export function initSettingsPanel(parent: HTMLElement): void {
   backupButtons.append(exportBtn, importBtn);
   backupRow.append(backupLabel, backupButtons);
 
+  const syncTokenRow = document.createElement('div');
+  syncTokenRow.className = 'settings-row';
+  const syncTokenLabel = document.createElement('span');
+  syncTokenLabel.textContent = 'Sync token';
+  const syncTokenInput = document.createElement('input');
+  syncTokenInput.type = 'password';
+  syncTokenInput.placeholder = 'paste token';
+  syncTokenInput.autocomplete = 'off';
+  syncTokenInput.value = getSyncToken();
+  syncTokenInput.addEventListener('change', () => {
+    setSyncToken(syncTokenInput.value);
+  });
+  syncTokenRow.append(syncTokenLabel, syncTokenInput);
+
+  const syncRow = document.createElement('div');
+  syncRow.className = 'settings-row';
+  const syncLabel = document.createElement('span');
+  syncLabel.textContent = 'Sync';
+  const syncButtons = document.createElement('div');
+  syncButtons.className = 'backup-buttons';
+  const pushBtn = document.createElement('button');
+  pushBtn.type = 'button';
+  pushBtn.textContent = 'Push';
+  pushBtn.title = 'Send all data from this browser to the server';
+  const pullBtn = document.createElement('button');
+  pullBtn.type = 'button';
+  pullBtn.textContent = 'Pull';
+  pullBtn.title = 'Replace all data in this browser with the server copy';
+  syncButtons.append(pushBtn, pullBtn);
+  syncRow.append(syncLabel, syncButtons);
+
+  pushBtn.addEventListener('click', () => {
+    showStatus('Pushing...');
+    void pushBackup()
+      .then((storedAt) => showStatus(`Pushed. Server copy from ${new Date(storedAt).toLocaleString()}.`))
+      .catch((error: unknown) => showStatus(`Push failed: ${errorText(error)}`, true));
+  });
+
+  pullBtn.addEventListener('click', () => {
+    showStatus('Fetching server copy...');
+    void fetchBackup()
+      .then((stored) => {
+        const when = new Date(stored.storedAt).toLocaleString();
+        if (!window.confirm(`Pull replaces all data in this browser with the server copy from ${when}. Continue?`)) {
+          showStatus('Pull cancelled.');
+          return;
+        }
+        showStatus('Restoring...');
+        return applyBackup(stored.payload).then((summary) => {
+          const parts = [`${summary.days} days`, `${summary.reasons} reasons`, `${summary.events} events`, `${summary.todos} focus items`, `${summary.habits} habits`];
+          const skipped = summary.skipped > 0 ? ` (${summary.skipped} bad records skipped)` : '';
+          showStatus(`Pulled ${parts.join(', ')}${skipped}.`);
+        });
+      })
+      .catch((error: unknown) => showStatus(`Pull failed: ${errorText(error)}`, true));
+  });
+
   const fileInput = document.createElement('input');
   fileInput.type = 'file';
   fileInput.accept = 'application/json,.json';
@@ -102,7 +160,7 @@ export function initSettingsPanel(parent: HTMLElement): void {
     lifespanInput.value = String(getSettings().lifespanYears ?? 90);
   });
 
-  panel.append(head, birthdayRow, lifespanRow, backupRow, fileInput, status);
+  panel.append(head, birthdayRow, lifespanRow, backupRow, syncTokenRow, syncRow, fileInput, status);
   parent.append(panel);
 }
 

@@ -20,6 +20,8 @@ export interface Reason {
   /** 1 (mild) to 5 (severe); drives the failed box color */
   severity: number;
   createdAt: number;
+  /** epoch ms of the last topic/severity edit; sync merge uses it for last-write-wins */
+  updatedAt?: number;
 }
 
 export interface LifeEvent {
@@ -35,6 +37,8 @@ export interface TodoItem {
   done: boolean;
   createdAt: number;
   doneAt?: number;
+  /** epoch ms of the last text/done edit; sync merge uses it for last-write-wins */
+  updatedAt?: number;
 }
 
 export interface Habit {
@@ -43,10 +47,21 @@ export interface Habit {
   createdAt: number;
   /** sorted YYYY-MM-DD (local time) of every day the habit was achieved */
   days: string[];
+  /** epoch ms of the last rename/toggle; sync merge uses it for last-write-wins */
+  updatedAt?: number;
+}
+
+/** Marks a record deleted by sync so other devices do not resurrect it. */
+export interface Tombstone {
+  store: 'reasons' | 'events' | 'todos' | 'habits';
+  id: string;
+  deletedAt: number; // epoch ms
 }
 
 export interface AppSettings {
   key: 'app';
   birthdate?: string; // YYYY-MM-DD, anchors the life view
   lifespanYears?: number; // grid length, default 90
+  /** epoch ms of the last settings edit; sync merge uses it for last-write-wins */
+  updatedAt?: number;
 }

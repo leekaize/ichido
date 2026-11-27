@@ -4,12 +4,12 @@ Developer notes for ichido. User-facing readme lives in [README.md](README.md).
 
 ## Architecture
 
-One static page plus one small server route. The UI reads and writes one IndexedDB record per day; the optional sync copies a whole-store backup JSON to a Workers KV namespace and back.
+One static page plus one small server route. The UI reads and writes one IndexedDB record per day; the optional sync pushes a whole-store backup JSON to a Workers KV namespace and merges the server copy back in per record.
 
 ```mermaid
 flowchart LR
     UI[UI: day grid, life weeks, panels] <--> DB[(IndexedDB in the browser)]
-    UI -. push / pull .-> API[Worker: /api/backup]
+    UI -. push / merge-pull .-> API[Worker: /api/backup]
     API --> KV[(Workers KV)]
 ```
 
@@ -27,7 +27,7 @@ Code map:
 | Focus list | `src/focuslist.ts` |
 | Habit tracker | `src/habittracker.ts` |
 | Backup export/import | `src/backup.ts` |
-| Sync client: push/pull, token storage | `src/sync.ts` |
+| Sync client: auto push/pull, merge orchestration, token storage | `src/sync.ts` |
 | Backup API route (runs on the Worker) | `routes/api/backup.ts` |
 | Environment schema (sync token) | `env.ts` |
 | Wiring, types, styles | `src/main.ts`, `src/types.ts`, `src/style.css` |
@@ -43,7 +43,7 @@ Code map:
 - Focus: a to-do list left of the life view, under the day grid, always visible. Enter adds, circle toggles done, text click edits, x removes; "clear done" wipes completed items.
 - Habits: clickable boxes under the focus list, always visible. Click marks the habit achieved today (box turns green), click again cancels. Text click renames, x deletes the habit and its history, Enter adds. Each box shows a strength bar: the share of achieved days over the last 30 days (only days since creation count), weighted with a 10-day half-life so recent days matter more; the bar runs red (weak) to green (strong). The streak in days sits next to the bar; today not being achieved yet does not break a streak that runs through yesterday.
 - Settings > Backup: Export downloads all six stores as one JSON file. Import asks for confirmation, then replaces the stores with the file's contents and refreshes the UI.
-- Settings > Sync: paste the sync token once (kept in localStorage, never inside backups), then Push sends all stores to the server and Pull replaces this browser's stores with the server copy after confirmation.
+- Settings > Sync: paste the sync token once (kept in localStorage, never inside backups), then Push sends all stores to the server and Pull replaces this browser's stores with the server copy after confirmation. With a token set, auto-sync also runs by itself: local changes push two seconds after the last write (plus a best-effort keepalive flush when the tab closes, for payloads under 64KB), and the server copy merges in on page load, once a minute, when a hidden tab becomes visible again, and when the network comes back. The status line reports the last sync; Workers KV can lag up to ~60s behind another device's push, and the next pull catches up.
 
 ## Data model
 
@@ -56,11 +56,12 @@ IndexedDB database `ichido`, version 4:
 | `events` | id | `date`, `label`, `color` |
 | `todos` | id | `text`, `done`, `createdAt`, `doneAt?` |
 | `habits` | id | `name`, `days[]` (sorted YYYY-MM-DD achieved), `createdAt` |
+| `tombstones` | `store` + `id` | `deletedAt`; marks deleted records so merges do not resurrect them |
 | `settings` | `app` | `birthdate`, `lifespanYears` |
 
-- `updatedAt` is stored per day, ready for a future per-day last-write-wins merge; the current sync replaces whole stores.
+- Every mutable record carries `updatedAt` (epoch ms; days always had it, reasons, todos, habits, and settings gained it). The sync merge uses it for per-record last-write-wins: records are unioned by key, the newer stamp wins, ties keep the local copy. Deletions always win: a tombstone from `db.delete*` (`src/db.ts`) removes its record everywhere, so stale devices cannot bring a deleted todo, habit, event, or reason back. Merges run in `mergeBackup` (`src/backup.ts`); manual import and Pull still replace whole stores via `applyBackup`.
 - Days saved before multi-select reasons existed are migrated on read (`normalizeDay` in `src/db.ts`).
-- Backup: Export writes all six stores to a versioned JSON file. Import sanitizes the file (`sanitize*` in `src/backup.ts`), then clears and refills the stores in one transaction (`replaceAllStores` in `src/db.ts`); undo stacks are cleared and the UI re-reads from the database. Exports from before the focus list existed import with an empty `todos` store; exports from before the habit tracker existed import with an empty `habits` store. Sync Push reuses the same payload builder (`buildPayload`); Pull feeds the server copy through the same sanitize path (`applyBackup`).
+- Backup: Export writes all six stores plus tombstones to a versioned JSON file (version 5). Import sanitizes the file (`sanitize*` in `src/backup.ts`), then clears and refills the stores in one transaction (`replaceAllStores` in `src/db.ts`); undo stacks are cleared and the UI re-reads from the database. Exports from before the focus list existed import with an empty `todos` store; exports from before the habit tracker existed import with an empty `habits` store; exports from before tombstones existed import keeping the local tombstones. Sync Push reuses the same payload builder (`buildPayload`); auto-sync Pull feeds the server copy through `mergeBackup` and pushes back when the merge changed anything, so all devices converge.
 
 ## Development
 
@@ -100,6 +101,7 @@ Shipped (this repo):
 - Mobile layouts, dark mode, reduced-motion support
 - JSON export/import of all stores
 - Server backup sync: Push/Pull to Workers KV behind a sync token, served by a Void Worker on Cloudflare
+- Auto-sync between devices: debounced push on any data write, merge-on-pull with per-record last-write-wins, deletion tombstones, pull on load / every minute / on tab visible / on reconnect
 
 Next:
 
@@ -108,7 +110,6 @@ Next:
 
 Later:
 
-- Per-day last-write-wins merge using `DayRecord.updatedAt`, instead of the whole-file restore the sync does now
 - CalDAV: show planned events from a Nextcloud calendar
 - PWA/service worker so the page itself loads offline
 - Keyboard navigation for the grids

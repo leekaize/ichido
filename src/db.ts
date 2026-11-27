@@ -1,9 +1,9 @@
-import type { AppSettings, Cell, DayRecord, Habit, LifeEvent, Reason, TodoItem } from './types';
+import type { AppSettings, Cell, DayRecord, Habit, LifeEvent, Reason, Tombstone, TodoItem } from './types';
 
 const DB_NAME = 'ichido';
-const DB_VERSION = 4;
+const DB_VERSION = 5;
 
-type StoreName = 'days' | 'reasons' | 'settings' | 'events' | 'todos' | 'habits';
+type StoreName = 'days' | 'reasons' | 'settings' | 'events' | 'todos' | 'habits' | 'tombstones';
 
 let dbPromise: Promise<IDBDatabase> | null = null;
 
@@ -30,6 +30,9 @@ function open(): Promise<IDBDatabase> {
         }
         if (!db.objectStoreNames.contains('habits')) {
           db.createObjectStore('habits', { keyPath: 'id' });
+        }
+        if (!db.objectStoreNames.contains('tombstones')) {
+          db.createObjectStore('tombstones', { keyPath: ['store', 'id'] });
         }
       };
       req.onsuccess = () => resolve(req.result);
@@ -85,6 +88,40 @@ function remove(store: StoreName, key: string): Promise<void> {
   );
 }
 
+// Sync hooks: every data write funnels through the helpers above, so this is
+// the one place auto-sync needs to watch. Tombstones ride along with deletes
+// so a merge on another device can drop the record instead of resurrecting it.
+
+type DataListener = () => void;
+const dataListeners: DataListener[] = [];
+
+export function onDataWrite(fn: DataListener): void {
+  dataListeners.push(fn);
+}
+
+function emitDataWrite(): void {
+  for (const fn of dataListeners) fn();
+}
+
+const TOMBSTONE_STORES = new Set<StoreName>(['reasons', 'events', 'todos', 'habits']);
+
+async function removeWithTombstone(store: StoreName, key: string): Promise<void> {
+  if (!TOMBSTONE_STORES.has(store)) {
+    await remove(store, key);
+  } else {
+    const tombstone: Tombstone = { store: store as Tombstone['store'], id: key, deletedAt: Date.now() };
+    const conn = await open();
+    await new Promise<void>((resolve, reject) => {
+      const tx = conn.transaction([store, 'tombstones'], 'readwrite');
+      tx.objectStore(store).delete(key);
+      tx.objectStore('tombstones').put(tombstone);
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+  }
+  emitDataWrite();
+}
+
 /** Records saved before multi-select reasons existed carry reasonId (singular). */
 function normalizeDay(day: DayRecord): DayRecord {
   const cells = day.cells.map((cell) => {
@@ -104,22 +141,41 @@ export const db = {
     const days = await getAll<DayRecord>('days');
     return days.map(normalizeDay);
   },
-  putDay: (record: DayRecord) => put('days', record),
+  putDay: async (record: DayRecord) => {
+    await put('days', record);
+    emitDataWrite();
+  },
   getReasons: () => getAll<Reason>('reasons'),
-  putReason: (reason: Reason) => put('reasons', reason),
-  deleteReason: (id: string) => remove('reasons', id),
+  putReason: async (reason: Reason) => {
+    await put('reasons', reason);
+    emitDataWrite();
+  },
+  deleteReason: (id: string) => removeWithTombstone('reasons', id),
   getSettings: () => get<AppSettings>('settings', 'app'),
-  putSettings: (settings: AppSettings) => put('settings', settings),
+  putSettings: async (settings: AppSettings) => {
+    await put('settings', settings);
+    emitDataWrite();
+  },
   getEvents: () => getAll<LifeEvent>('events'),
-  putEvent: (event: LifeEvent) => put('events', event),
-  deleteEvent: (id: string) => remove('events', id),
+  putEvent: async (event: LifeEvent) => {
+    await put('events', event);
+    emitDataWrite();
+  },
+  deleteEvent: (id: string) => removeWithTombstone('events', id),
   getTodos: () => getAll<TodoItem>('todos'),
-  putTodo: (todo: TodoItem) => put('todos', todo),
-  deleteTodo: (id: string) => remove('todos', id),
+  putTodo: async (todo: TodoItem) => {
+    await put('todos', todo);
+    emitDataWrite();
+  },
+  deleteTodo: (id: string) => removeWithTombstone('todos', id),
   getHabits: () => getAll<Habit>('habits'),
-  putHabit: (habit: Habit) => put('habits', habit),
-  deleteHabit: (id: string) => remove('habits', id),
-  /** Wipes and refills the stores in one transaction; used by backup import. */
+  putHabit: async (habit: Habit) => {
+    await put('habits', habit);
+    emitDataWrite();
+  },
+  deleteHabit: (id: string) => removeWithTombstone('habits', id),
+  getTombstones: () => getAll<Tombstone>('tombstones'),
+  /** Wipes and refills the stores in one transaction; used by backup import and sync merge. */
   replaceAllStores: async (data: {
     days: DayRecord[];
     reasons: Reason[];
@@ -127,11 +183,14 @@ export const db = {
     todos: TodoItem[];
     habits: Habit[];
     settings?: AppSettings;
+    tombstones?: Tombstone[];
   }): Promise<void> =>
     open().then(
       (db) =>
         new Promise<void>((resolve, reject) => {
-          const tx = db.transaction(['days', 'reasons', 'settings', 'events', 'todos', 'habits'], 'readwrite');
+          const stores: StoreName[] = ['days', 'reasons', 'settings', 'events', 'todos', 'habits'];
+          if (data.tombstones) stores.push('tombstones');
+          const tx = db.transaction(stores, 'readwrite');
           tx.objectStore('days').clear();
           tx.objectStore('reasons').clear();
           tx.objectStore('events').clear();
@@ -146,8 +205,12 @@ export const db = {
             tx.objectStore('settings').clear();
             tx.objectStore('settings').put(data.settings);
           }
+          if (data.tombstones) {
+            tx.objectStore('tombstones').clear();
+            for (const tombstone of data.tombstones) tx.objectStore('tombstones').put(tombstone);
+          }
           tx.oncomplete = () => resolve();
           tx.onerror = () => reject(tx.error);
         }),
-    ),
+    ).then(() => emitDataWrite()),
 };

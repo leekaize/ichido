@@ -2,9 +2,9 @@ import { db } from './db';
 import { reloadFromDb } from './state';
 import { reloadDayView } from './dayview';
 import { clear as clearHistory } from './history';
-import type { AppSettings, Cell, CellStatus, DayRecord, Habit, LifeEvent, Reason, TodoItem } from './types';
+import type { AppSettings, Cell, CellStatus, DayRecord, Habit, LifeEvent, Reason, Tombstone, TodoItem } from './types';
 
-const EXPORT_VERSION = 4;
+const EXPORT_VERSION = 5;
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 export interface ImportSummary {
@@ -26,17 +26,19 @@ export interface BackupPayload {
   todos: TodoItem[];
   habits: Habit[];
   settings: AppSettings | null;
+  tombstones?: Tombstone[];
 }
 
 /** Collects every store as one payload object, shared by export and sync push. */
 export async function buildPayload(): Promise<BackupPayload> {
-  const [days, reasons, events, todos, habits, settings] = await Promise.all([
+  const [days, reasons, events, todos, habits, settings, tombstones] = await Promise.all([
     db.getAllDays(),
     db.getReasons(),
     db.getEvents(),
     db.getTodos(),
     db.getHabits(),
     db.getSettings(),
+    db.getTombstones(),
   ]);
   return {
     app: 'ichido',
@@ -48,6 +50,7 @@ export async function buildPayload(): Promise<BackupPayload> {
     todos,
     habits,
     settings: settings ?? null,
+    tombstones,
   };
 }
 
@@ -75,9 +78,20 @@ export async function importJson(file: File): Promise<ImportSummary> {
   return applyBackup(parsed);
 }
 
-/** Validates a parsed export, replaces all stores with it, and refreshes the UI. */
-export async function applyBackup(parsed: unknown): Promise<ImportSummary> {
-  const data = parsed as { days?: unknown; reasons?: unknown; events?: unknown; todos?: unknown; habits?: unknown; settings?: unknown } | null;
+interface ParsedPayload {
+  days: DayRecord[];
+  reasons: Reason[];
+  events: LifeEvent[];
+  todos: TodoItem[];
+  habits: Habit[];
+  settings: AppSettings | undefined;
+  tombstones: Tombstone[] | undefined;
+  rawCount: number;
+}
+
+/** Shared validation and sanitation for import, manual pull, and sync merge. */
+function parsePayload(parsed: unknown): ParsedPayload {
+  const data = parsed as { days?: unknown; reasons?: unknown; events?: unknown; todos?: unknown; habits?: unknown; settings?: unknown; tombstones?: unknown } | null;
   if (!data || !Array.isArray(data.days) || !Array.isArray(data.reasons) || !Array.isArray(data.events)) {
     throw new Error('not an ichido export');
   }
@@ -90,14 +104,43 @@ export async function applyBackup(parsed: unknown): Promise<ImportSummary> {
   const todos = Array.isArray(data.todos) ? sanitizeTodos(data.todos) : [];
   const habits = Array.isArray(data.habits) ? sanitizeHabits(data.habits) : [];
   const settings = sanitizeSettings(data.settings);
-  const skipped =
-    data.days.length - days.length + (data.reasons.length - reasons.length) + (data.events.length - events.length) + (Array.isArray(data.todos) ? data.todos.length - todos.length : 0) + (Array.isArray(data.habits) ? data.habits.length - habits.length : 0);
+  // payloads from before tombstones existed carry none; undefined keeps the local ones
+  const tombstones = Array.isArray(data.tombstones) ? sanitizeTombstones(data.tombstones) : undefined;
+  const rawCount =
+    data.days.length + data.reasons.length + data.events.length + (Array.isArray(data.todos) ? data.todos.length : 0) + (Array.isArray(data.habits) ? data.habits.length : 0);
+  return { days, reasons, events, todos, habits, settings, tombstones, rawCount };
+}
 
-  await db.replaceAllStores({ days, reasons, events, todos, habits, settings });
+function summarize(payload: ParsedPayload): ImportSummary {
+  const skipped =
+    payload.rawCount -
+    (payload.days.length + payload.reasons.length + payload.events.length + payload.todos.length + payload.habits.length);
+  return {
+    days: payload.days.length,
+    reasons: payload.reasons.length,
+    events: payload.events.length,
+    todos: payload.todos.length,
+    habits: payload.habits.length,
+    skipped,
+  };
+}
+
+/** Validates a parsed export, replaces all stores with it, and refreshes the UI. */
+export async function applyBackup(parsed: unknown): Promise<ImportSummary> {
+  const payload = parsePayload(parsed);
+  await db.replaceAllStores({
+    days: payload.days,
+    reasons: payload.reasons,
+    events: payload.events,
+    todos: payload.todos,
+    habits: payload.habits,
+    settings: payload.settings,
+    tombstones: payload.tombstones,
+  });
   clearHistory();
   await reloadFromDb();
   reloadDayView();
-  return { days: days.length, reasons: reasons.length, events: events.length, todos: todos.length, habits: habits.length, skipped };
+  return summarize(payload);
 }
 
 function sanitizeDays(raw: unknown[]): DayRecord[] {
@@ -141,6 +184,7 @@ function sanitizeReasons(raw: unknown[]): Reason[] {
           ? Math.round(reason.severity)
           : 3,
       createdAt: typeof reason.createdAt === 'number' ? reason.createdAt : Date.now(),
+      updatedAt: typeof reason.updatedAt === 'number' ? reason.updatedAt : undefined,
     });
   }
   return reasons;
@@ -178,6 +222,7 @@ function sanitizeTodos(raw: unknown[]): TodoItem[] {
       done,
       createdAt: typeof todo.createdAt === 'number' ? todo.createdAt : Date.now(),
       doneAt: done && typeof todo.doneAt === 'number' ? todo.doneAt : undefined,
+      updatedAt: typeof todo.updatedAt === 'number' ? todo.updatedAt : undefined,
     });
   }
   return todos;
@@ -195,6 +240,7 @@ function sanitizeHabits(raw: unknown[]): Habit[] {
       name: habit.name,
       createdAt: typeof habit.createdAt === 'number' ? habit.createdAt : Date.now(),
       days: [...new Set(days)].sort(),
+      updatedAt: typeof habit.updatedAt === 'number' ? habit.updatedAt : undefined,
     });
   }
   return habits;
@@ -209,12 +255,115 @@ function sanitizeSettings(raw: unknown): AppSettings | undefined {
   if (typeof stored.lifespanYears === 'number' && Number.isFinite(stored.lifespanYears)) {
     settings.lifespanYears = Math.min(120, Math.max(40, Math.round(stored.lifespanYears)));
   }
+  if (typeof stored.updatedAt === 'number' && Number.isFinite(stored.updatedAt)) settings.updatedAt = stored.updatedAt;
   return settings;
+}
+
+const TOMBSTONE_STORES = new Set(['reasons', 'events', 'todos', 'habits']);
+
+function sanitizeTombstones(raw: unknown[]): Tombstone[] {
+  const tombstones: Tombstone[] = [];
+  for (const item of raw) {
+    if (!item || typeof item !== 'object') continue;
+    const t = item as Partial<Tombstone>;
+    if (typeof t.id !== 'string' || typeof t.deletedAt !== 'number' || !Number.isFinite(t.deletedAt)) continue;
+    if (!t.store || !TOMBSTONE_STORES.has(t.store)) continue;
+    tombstones.push({ store: t.store, id: t.id, deletedAt: Math.round(t.deletedAt) });
+  }
+  return tombstones;
 }
 
 function todayStr(): string {
   const now = new Date();
   return `${now.getFullYear()}-${pad2(now.getMonth() + 1)}-${pad2(now.getDate())}`;
+}
+
+// --- sync merge -----------------------------------------------------------
+// Union of local and server records with per-record last-write-wins. Deletions
+// win outright: a tombstone removes its record on every device, so stale copies
+// cannot resurrect a deleted todo, habit, event, or reason.
+
+function mergeRecords<T>(local: T[], remote: T[], keyOf: (r: T) => string, tombstoned: Set<string>, stamp: (r: T) => number): T[] {
+  const merged = new Map<string, T>(local.map((r) => [keyOf(r), r]));
+  for (const r of remote) {
+    const key = keyOf(r);
+    const mine = merged.get(key);
+    if (!mine) merged.set(key, r);
+    else if (stamp(r) > stamp(mine)) merged.set(key, r); // tie keeps the local copy
+  }
+  for (const id of tombstoned) merged.delete(id);
+  return [...merged.values()];
+}
+
+function sameRecords<T>(a: T[], b: T[], keyOf: (r: T) => string): boolean {
+  if (a.length !== b.length) return false;
+  const before = new Map(a.map((r) => [keyOf(r), JSON.stringify(r)]));
+  return b.every((r) => before.get(keyOf(r)) === JSON.stringify(r));
+}
+
+function sameTombstones(a: Tombstone[], b: Tombstone[]): boolean {
+  if (a.length !== b.length) return false;
+  const before = new Map(a.map((t) => [`${t.store}:${t.id}`, t.deletedAt]));
+  return b.every((t) => before.get(`${t.store}:${t.id}`) === t.deletedAt);
+}
+
+/**
+ * Merges the server payload into the local stores instead of replacing them:
+ * union by id with last-write-wins per record (days use `updatedAt`, the rest
+ * fall back to `createdAt`). Applies locally only when something changed, so
+ * the caller can push the converged state back.
+ */
+export async function mergeBackup(parsed: unknown): Promise<{ changed: boolean; summary: ImportSummary }> {
+  const payload = parsePayload(parsed);
+  const [localDays, localReasons, localEvents, localTodos, localHabits, localSettings, localTombstones] = await Promise.all([
+    db.getAllDays(),
+    db.getReasons(),
+    db.getEvents(),
+    db.getTodos(),
+    db.getHabits(),
+    db.getSettings(),
+    db.getTombstones(),
+  ]);
+
+  const tombstoned = new Set<string>();
+  const mergedTombstones = new Map<string, Tombstone>();
+  for (const t of [...localTombstones, ...(payload.tombstones ?? [])]) {
+    const key = `${t.store}:${t.id}`;
+    const existing = mergedTombstones.get(key);
+    if (!existing || t.deletedAt > existing.deletedAt) mergedTombstones.set(key, t);
+    tombstoned.add(t.id);
+  }
+
+  const stampTodo = (t: TodoItem) => t.updatedAt ?? t.doneAt ?? t.createdAt;
+  const dayKey = (d: DayRecord) => d.date;
+  const idKey = (r: { id: string }) => r.id;
+  const days = mergeRecords(localDays, payload.days, dayKey, tombstoned, (d) => d.updatedAt).sort((a, b) => a.date.localeCompare(b.date));
+  const reasons = mergeRecords(localReasons, payload.reasons, idKey, tombstoned, (r) => r.updatedAt ?? r.createdAt);
+  const events = mergeRecords(localEvents, payload.events, idKey, tombstoned, () => 0);
+  const todos = mergeRecords(localTodos, payload.todos, idKey, tombstoned, stampTodo).sort((a, b) => a.createdAt - b.createdAt);
+  const habits = mergeRecords(localHabits, payload.habits, idKey, tombstoned, (h) => h.updatedAt ?? h.createdAt).sort((a, b) => a.createdAt - b.createdAt);
+  const tombstones = [...mergedTombstones.values()];
+
+  // settings: single record, newer stamp wins; tie or no stamps keeps local
+  const remoteSettings = payload.settings;
+  let settings = localSettings ?? remoteSettings;
+  if (localSettings && remoteSettings && (remoteSettings.updatedAt ?? 0) > (localSettings.updatedAt ?? 0)) settings = remoteSettings;
+
+  const changed =
+    !sameRecords(localDays, days, dayKey) ||
+    !sameRecords(localReasons, reasons, idKey) ||
+    !sameRecords(localEvents, events, idKey) ||
+    !sameRecords(localTodos, todos, idKey) ||
+    !sameRecords(localHabits, habits, idKey) ||
+    !sameTombstones(localTombstones, tombstones) ||
+    JSON.stringify(localSettings ?? null) !== JSON.stringify(settings ?? null);
+  if (!changed) return { changed: false, summary: summarize(payload) };
+
+  await db.replaceAllStores({ days, reasons, events, todos, habits, settings, tombstones });
+  clearHistory();
+  await reloadFromDb();
+  reloadDayView();
+  return { changed: true, summary: summarize(payload) };
 }
 
 function pad2(n: number): string {

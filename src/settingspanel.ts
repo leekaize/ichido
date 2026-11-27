@@ -1,5 +1,5 @@
 import { applyBackup, exportJson, importJson } from './backup';
-import { fetchBackup, getSyncToken, pushBackup, setSyncToken } from './sync';
+import { fetchBackup, getSyncToken, pushBackup, setAutoSyncStatus, setSyncToken } from './sync';
 import { getSettings, onSettingsChange, setBirthday, setLifespan } from './state';
 
 let panel: HTMLElement;
@@ -159,6 +159,9 @@ export function initSettingsPanel(parent: HTMLElement): void {
     birthdayInput.value = getSettings().birthdate ?? '';
     lifespanInput.value = String(getSettings().lifespanYears ?? 90);
   });
+
+  // auto-sync reports into the same status line as the manual buttons
+  setAutoSyncStatus(showStatus);
 
   panel.append(head, birthdayRow, lifespanRow, backupRow, syncTokenRow, syncRow, fileInput, status);
   parent.append(panel);

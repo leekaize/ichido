@@ -8,6 +8,7 @@ import { closePanel as closeEventsPanel, initEventsPanel, toggleEventsPanel } fr
 import { closePanel as closeSettingsPanel, initSettingsPanel, toggleSettingsPanel } from './settingspanel';
 import { initFocusList } from './focuslist';
 import { initHabitTracker } from './habittracker';
+import { startAutoSync } from './sync';
 
 async function main(): Promise<void> {
   const app = document.querySelector<HTMLDivElement>('#app');
@@ -75,6 +76,7 @@ async function main(): Promise<void> {
   initBirthdayModal(app);
   if (!getSettings().birthdate) openBirthdayModal();
   onReasonsChange(rerenderDayView);
+  startAutoSync();
 }
 
 void main();

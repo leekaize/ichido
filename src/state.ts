@@ -115,7 +115,7 @@ export async function removeReason(id: string): Promise<void> {
 export async function setReasonSeverity(id: string, severity: number): Promise<void> {
   const reason = reasons.find((r) => r.id === id);
   if (!reason) return;
-  const updated: Reason = { ...reason, severity: clampSeverity(severity) };
+  const updated: Reason = { ...reason, severity: clampSeverity(severity), updatedAt: Date.now() };
   await db.putReason(updated);
   reasons = reasons.map((r) => (r.id === id ? updated : r));
   emitTo(reasonListeners);
@@ -126,7 +126,7 @@ export async function updateReasonTopic(id: string, topic: string): Promise<void
   if (!trimmed) return;
   const reason = reasons.find((r) => r.id === id);
   if (!reason || reason.topic === trimmed) return;
-  const updated: Reason = { ...reason, topic: trimmed };
+  const updated: Reason = { ...reason, topic: trimmed, updatedAt: Date.now() };
   await db.putReason(updated);
   reasons = reasons.map((r) => (r.id === id ? updated : r));
   reasons.sort((a, b) => a.topic.localeCompare(b.topic));
@@ -181,14 +181,14 @@ export function getSettings(): AppSettings {
 }
 
 export async function setBirthday(date: string | undefined): Promise<void> {
-  settings = { ...settings, birthdate: date && date !== '' ? date : undefined };
+  settings = { ...settings, birthdate: date && date !== '' ? date : undefined, updatedAt: Date.now() };
   await db.putSettings(settings);
   emitTo(settingsListeners);
 }
 
 export async function setLifespan(years: number): Promise<void> {
   if (!Number.isFinite(years)) return;
-  settings = { ...settings, lifespanYears: Math.min(120, Math.max(40, Math.round(years))) };
+  settings = { ...settings, lifespanYears: Math.min(120, Math.max(40, Math.round(years))), updatedAt: Date.now() };
   await db.putSettings(settings);
   emitTo(settingsListeners);
 }
@@ -265,8 +265,8 @@ export async function toggleTodo(id: string): Promise<void> {
   const todo = todos.find((t) => t.id === id);
   if (!todo) return;
   const next: TodoItem = todo.done
-    ? { ...todo, done: false, doneAt: undefined }
-    : { ...todo, done: true, doneAt: Date.now() };
+    ? { ...todo, done: false, doneAt: undefined, updatedAt: Date.now() }
+    : { ...todo, done: true, doneAt: Date.now(), updatedAt: Date.now() };
   await db.putTodo(next);
   todos = todos.map((t) => (t.id === id ? next : t));
   emitTo(todoListeners);
@@ -277,7 +277,7 @@ export async function updateTodoText(id: string, text: string): Promise<void> {
   if (!trimmed) return;
   const todo = todos.find((t) => t.id === id);
   if (!todo || todo.text === trimmed) return;
-  const next: TodoItem = { ...todo, text: trimmed };
+  const next: TodoItem = { ...todo, text: trimmed, updatedAt: Date.now() };
   await db.putTodo(next);
   todos = todos.map((t) => (t.id === id ? next : t));
   emitTo(todoListeners);
@@ -325,7 +325,7 @@ export async function renameHabit(id: string, name: string): Promise<void> {
   if (!trimmed) return;
   const habit = habits.find((h) => h.id === id);
   if (!habit || habit.name === trimmed) return;
-  const next: Habit = { ...habit, name: trimmed };
+  const next: Habit = { ...habit, name: trimmed, updatedAt: Date.now() };
   await db.putHabit(next);
   habits = habits.map((h) => (h.id === id ? next : h));
   emitTo(habitListeners);
@@ -337,7 +337,7 @@ export async function toggleHabitToday(id: string): Promise<void> {
   if (!habit) return;
   const today = localDateStr(new Date());
   const days = habit.days.includes(today) ? habit.days.filter((d) => d !== today) : [...habit.days, today].sort();
-  const next: Habit = { ...habit, days };
+  const next: Habit = { ...habit, days, updatedAt: Date.now() };
   await db.putHabit(next);
   habits = habits.map((h) => (h.id === id ? next : h));
   emitTo(habitListeners);
